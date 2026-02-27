@@ -2,9 +2,6 @@
   "name": "veta-performance-tracker",
   "version": "0.1.0",
   "private": true,
-  "engines": {
-    "node": "22.14.0"
-  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -12,8 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@prisma/adapter-pg": "^7.4.2",
-    "@prisma/client": "^7.4.2",
+    "@prisma/adapter-pg": "^6.19.2",
+    "@prisma/client": "^6.19.2",
     "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-progress": "^1.1.8",
     "@radix-ui/react-separator": "^1.1.8",
@@ -25,7 +22,7 @@
     "lucide-react": "^0.575.0",
     "next": "14.2.35",
     "pg": "^8.19.0",
-    "prisma": "^7.4.2",
+    "prisma": "^6.19.2",
     "react": "^18",
     "react-dom": "^18",
     "recharts": "^3.7.0",
