@@ -43,6 +43,17 @@ export async function toggleHabitLog(habitId: string, dateISO: string) {
  * Get all habits for a user with logs from the last 7 days.
  */
 export async function getHabitsWithLogs(userId: string) {
+    // Ensure the TEMP user exists first so relations don't break in empty DBs
+    await prisma.user.upsert({
+        where: { id: userId },
+        update: {},
+        create: {
+            id: userId,
+            email: "temp@example.com",
+            name: "Temp User",
+        },
+    });
+
     const now = new Date();
     const sevenDaysAgo = new Date(now);
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
@@ -73,6 +84,13 @@ export async function getHabitsWithLogs(userId: string) {
  * for the weekly contribution grid.
  */
 export async function getHabitsWithWeeklyLogs(userId: string) {
+    // Ensure the TEMP user exists first
+    await prisma.user.upsert({
+        where: { id: userId },
+        update: {},
+        create: { id: userId, email: "temp@example.com", name: "Temp User" },
+    });
+
     const now = new Date();
     const fortyNineDaysAgo = new Date(now);
     fortyNineDaysAgo.setDate(fortyNineDaysAgo.getDate() - 48);
