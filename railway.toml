@@ -1,12 +1,12 @@
 [build]
 builder = "nixpacks"
-buildCommand = "npx prisma migrate deploy && npx prisma generate && npm run build"
+buildCommand = "npx prisma generate && npm run build"
 
 [variables]
 NODE_VERSION = "22.14.0"
 
 [deploy]
-startCommand = "npm start"
+startCommand = "npx prisma migrate deploy && npm start"
 healthcheckPath = "/"
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
