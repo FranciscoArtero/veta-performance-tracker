@@ -61,14 +61,15 @@ export default async function DashboardPage() {
         monthLabel={monthLabel}
       />
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as Error;
     return (
       <div className="p-8 text-red-500 font-mono">
         <h1 className="text-2xl font-bold mb-4">Server Error</h1>
         <pre className="bg-red-950/20 p-4 rounded-lg whitespace-pre-wrap">
-          {error.message || String(error)}
+          {err.message || String(error)}
           {"\n"}
-          {error.stack}
+          {err.stack}
         </pre>
       </div>
     );
