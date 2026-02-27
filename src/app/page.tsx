@@ -13,50 +13,64 @@ import {
 import { DashboardClient } from "@/components/dashboard/DashboardClient";
 
 export default async function DashboardPage() {
-  const [habits, moodData, monthlyData, todayMood] = await Promise.all([
-    getHabitsWithLogs(TEMP_USER_ID),
-    getMentalStateWeek(TEMP_USER_ID),
-    getMonthlyLogs(TEMP_USER_ID),
-    getTodayMentalState(TEMP_USER_ID),
-  ]);
+  try {
+    const [habits, moodData, monthlyData, todayMood] = await Promise.all([
+      getHabitsWithLogs(TEMP_USER_ID),
+      getMentalStateWeek(TEMP_USER_ID),
+      getMonthlyLogs(TEMP_USER_ID),
+      getTodayMentalState(TEMP_USER_ID),
+    ]);
 
-  // Compute streaks for each habit
-  const streaks: Record<string, number> = {};
-  let bestStreak = 0;
-  for (const habit of habits) {
-    const s = computeStreak(habit.logs);
-    streaks[habit.id] = s;
-    if (s > bestStreak) bestStreak = s;
+    // Compute streaks for each habit
+    const streaks: Record<string, number> = {};
+    let bestStreak = 0;
+    for (const habit of habits) {
+      const s = computeStreak(habit.logs);
+      streaks[habit.id] = s;
+      if (s > bestStreak) bestStreak = s;
+    }
+
+    // Serialize dates for client
+    const serializedHabits = habits.map((h) => ({
+      ...h,
+      createdAt: undefined,
+      updatedAt: undefined,
+      logs: h.logs.map((l) => ({
+        id: l.id,
+        // Fallback or serialize date just in case
+        date: l.date ? new Date(l.date) : new Date(),
+        completed: l.completed,
+      })),
+    }));
+
+    // Month label
+    const now = new Date();
+    const monthLabel = now.toLocaleDateString("es-AR", {
+      month: "long",
+      year: "numeric",
+    });
+
+    return (
+      <DashboardClient
+        habits={serializedHabits}
+        streaks={streaks}
+        bestStreak={bestStreak}
+        moodData={moodData}
+        monthlyData={monthlyData}
+        todayMood={todayMood}
+        monthLabel={monthLabel}
+      />
+    );
+  } catch (error: any) {
+    return (
+      <div className="p-8 text-red-500 font-mono">
+        <h1 className="text-2xl font-bold mb-4">Server Error</h1>
+        <pre className="bg-red-950/20 p-4 rounded-lg whitespace-pre-wrap">
+          {error.message || String(error)}
+          {"\n"}
+          {error.stack}
+        </pre>
+      </div>
+    );
   }
-
-  // Serialize dates for client
-  const serializedHabits = habits.map((h) => ({
-    ...h,
-    createdAt: undefined,
-    updatedAt: undefined,
-    logs: h.logs.map((l) => ({
-      id: l.id,
-      date: l.date,
-      completed: l.completed,
-    })),
-  }));
-
-  // Month label
-  const now = new Date();
-  const monthLabel = now.toLocaleDateString("es-AR", {
-    month: "long",
-    year: "numeric",
-  });
-
-  return (
-    <DashboardClient
-      habits={serializedHabits}
-      streaks={streaks}
-      bestStreak={bestStreak}
-      moodData={moodData}
-      monthlyData={monthlyData}
-      todayMood={todayMood}
-      monthLabel={monthLabel}
-    />
-  );
 }
