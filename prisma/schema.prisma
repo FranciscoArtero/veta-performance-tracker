@@ -1,0 +1,111 @@
+// Veta Performance Tracker - Prisma Schema
+// PostgreSQL database
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  name         String?
+  image        String?
+  habits       Habit[]
+  mentalStates MentalState[]
+  // Future relations:
+  // expenses     Expense[]
+  // workouts     Workout[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@map("users")
+}
+
+model Habit {
+  id        String     @id @default(cuid())
+  name      String
+  icon      String     @default("check") // Lucide icon name
+  color     String     @default("#8b5cf6") // hex color
+  frequency String     @default("daily") // daily | weekly | custom
+  isActive  Boolean    @default(true)
+  order     Int        @default(0)
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logs      HabitLog[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([userId])
+  @@map("habits")
+}
+
+model HabitLog {
+  id        String   @id @default(cuid())
+  habitId   String
+  date      DateTime @db.Date // ISO date, stored as date only
+  completed Boolean  @default(false)
+  habit     Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([habitId, date])
+  @@index([habitId])
+  @@index([date])
+  @@map("habit_logs")
+}
+
+model MentalState {
+  id         String   @id @default(cuid())
+  userId     String
+  date       DateTime @db.Date
+  mood       Int // 1-10
+  motivation Int // 1-10
+  notes      String?
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([date])
+  @@map("mental_states")
+}
+
+// ============================================
+// FUTURE MODELS (uncomment when ready)
+// ============================================
+
+// model Expense {
+//   id          String   @id @default(cuid())
+//   userId      String
+//   date        DateTime @db.Date
+//   amount      Decimal  @db.Decimal(10, 2)
+//   category    String
+//   description String?
+//   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+//   createdAt   DateTime @default(now())
+//   updatedAt   DateTime @updatedAt
+//
+//   @@index([userId])
+//   @@index([date])
+//   @@map("expenses")
+// }
+
+// model Workout {
+//   id          String   @id @default(cuid())
+//   userId      String
+//   date        DateTime @db.Date
+//   type        String   // strength | cardio | flexibility
+//   duration    Int      // minutes
+//   exercises   Json?    // array of { name, sets, reps, weight }
+//   notes       String?
+//   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+//   createdAt   DateTime @default(now())
+//   updatedAt   DateTime @updatedAt
+//
+//   @@index([userId])
+//   @@index([date])
+//   @@map("workouts")
+// }
