@@ -7,6 +7,5 @@ NODE_VERSION = "22.14.0"
 
 [deploy]
 startCommand = "npx prisma migrate deploy && npm start"
-healthcheckPath = "/"
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
