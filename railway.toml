@@ -6,7 +6,7 @@ buildCommand = "npx prisma migrate deploy && npx prisma generate && npm run buil
 providers = ["node"]
 
 [build.nixpacks.plan.phases.setup]
-nixPkgs = ["nodejs_20", "npm"]
+nixPkgs = ["nodejs_22", "npm"]
 
 [deploy]
 startCommand = "npm start"
