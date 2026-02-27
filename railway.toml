@@ -6,6 +6,6 @@ buildCommand = "npx prisma generate && npm run build"
 NODE_VERSION = "22.14.0"
 
 [deploy]
-startCommand = "npx prisma migrate deploy && npm start"
+startCommand = "npx prisma migrate resolve --rolled-back 0_init || true && npx prisma migrate deploy && npm start"
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
