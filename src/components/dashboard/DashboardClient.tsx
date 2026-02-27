@@ -1,0 +1,351 @@
+"use client";
+
+import { useState, useOptimistic, useTransition } from "react";
+import {
+    Target,
+    TrendingUp,
+    Brain,
+    Flame,
+    CheckCircle2,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { toggleHabitLog } from "@/app/actions/habits";
+import { MentalStateInput } from "./MentalStateInput";
+import { MonthlyHeatmap } from "./MonthlyHeatmap";
+
+type HabitWithLogs = {
+    id: string;
+    name: string;
+    icon: string;
+    color: string;
+    frequency: string;
+    logs: { id: string; date: Date; completed: boolean }[];
+};
+
+type MoodDataPoint = {
+    day: string;
+    mood: number;
+    motivation: number;
+};
+
+type MonthlyData = {
+    daysInMonth: number;
+    data: { day: number; ratio: number }[];
+};
+
+type Props = {
+    habits: HabitWithLogs[];
+    streaks: Record<string, number>;
+    bestStreak: number;
+    moodData: MoodDataPoint[];
+    monthlyData: MonthlyData;
+    todayMood: { mood: number; motivation: number } | null;
+    monthLabel: string;
+};
+
+function getTodayISO() {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+
+function isCompletedToday(logs: { date: Date; completed: boolean }[]) {
+    const todayStr = getTodayISO();
+    return logs.some((l) => {
+        const d = new Date(l.date);
+        const logStr = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+        return logStr === todayStr && l.completed;
+    });
+}
+
+export function DashboardClient({
+    habits,
+    streaks,
+    bestStreak,
+    moodData,
+    monthlyData,
+    todayMood,
+    monthLabel,
+}: Props) {
+    const [greeting, setGreeting] = useState("");
+    const [todayFormatted, setTodayFormatted] = useState("");
+    const [, startTransition] = useTransition();
+
+    // Build initial today-status map
+    const initialTodayMap: Record<string, boolean> = {};
+    for (const h of habits) {
+        initialTodayMap[h.id] = isCompletedToday(h.logs);
+    }
+    const [optimisticToday, setOptimisticToday] = useOptimistic(
+        initialTodayMap,
+        (state: Record<string, boolean>, habitId: string) => ({
+            ...state,
+            [habitId]: !state[habitId],
+        })
+    );
+
+    // Fix hydration: render dates only client-side
+    useState(() => {
+        const hour = new Date().getHours();
+        if (hour < 12) setGreeting("Buenos días");
+        else if (hour < 18) setGreeting("Buenas tardes");
+        else setGreeting("Buenas noches");
+
+        setTodayFormatted(
+            new Date().toLocaleDateString("es-AR", {
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+            })
+        );
+    });
+
+    const completedToday = Object.values(optimisticToday).filter(Boolean).length;
+    const totalToday = habits.length;
+    const progressPercent =
+        totalToday > 0 ? Math.round((completedToday / totalToday) * 100) : 0;
+
+    // Average mood from this week
+    const moodValues = moodData.filter((d) => d.mood > 0);
+    const avgMood =
+        moodValues.length > 0
+            ? (moodValues.reduce((s, d) => s + d.mood, 0) / moodValues.length).toFixed(1)
+            : "—";
+
+
+
+    function handleToggle(habitId: string) {
+        const todayISO = getTodayISO();
+        startTransition(async () => {
+            setOptimisticToday(habitId);
+            await toggleHabitLog(habitId, todayISO);
+        });
+    }
+
+    return (
+        <div className="p-6 lg:p-8 space-y-8">
+            {/* Header */}
+            <div className="space-y-1">
+                <h1 className="text-2xl font-bold tracking-tight lg:text-3xl">
+                    {greeting || "\u00A0"} 👋
+                </h1>
+                <p className="text-muted-foreground capitalize">
+                    {todayFormatted || "\u00A0"}
+                </p>
+            </div>
+
+            {/* Stats Row */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                            <div className="space-y-1">
+                                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                                    Hoy
+                                </p>
+                                <p className="text-2xl font-bold">
+                                    {completedToday}/{totalToday}
+                                </p>
+                            </div>
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/10">
+                                <CheckCircle2 className="h-5 w-5 text-violet-400" />
+                            </div>
+                        </div>
+                        <Progress value={progressPercent} className="mt-3 h-1.5" />
+                    </CardContent>
+                </Card>
+
+                <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                            <div className="space-y-1">
+                                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                                    Mejor racha
+                                </p>
+                                <div className="flex items-baseline gap-1">
+                                    <p className="text-2xl font-bold">{bestStreak}</p>
+                                    <span className="text-xs text-muted-foreground">días</span>
+                                </div>
+                            </div>
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/10">
+                                <Flame className="h-5 w-5 text-orange-400" />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                            <div className="space-y-1">
+                                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                                    Mood
+                                </p>
+                                <div className="flex items-baseline gap-1">
+                                    <p className="text-2xl font-bold">{avgMood}</p>
+                                    <span className="text-xs text-muted-foreground">/10</span>
+                                </div>
+                            </div>
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-500/10">
+                                <Brain className="h-5 w-5 text-cyan-400" />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                            <div className="space-y-1">
+                                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                                    Este mes
+                                </p>
+                                <div className="flex items-baseline gap-1">
+                                    <p className="text-2xl font-bold">
+                                        {monthlyData.data.filter((d) => d.ratio > 0).length > 0
+                                            ? Math.round(
+                                                (monthlyData.data
+                                                    .filter((d) => d.ratio >= 0)
+                                                    .reduce((s, d) => s + d.ratio, 0) /
+                                                    monthlyData.data.filter((d) => d.ratio >= 0)
+                                                        .length) *
+                                                100
+                                            )
+                                            : 0}
+                                        %
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10">
+                                <TrendingUp className="h-5 w-5 text-emerald-400" />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Main Content Grid */}
+            <div className="grid gap-6 lg:grid-cols-3">
+                {/* Today's Habits */}
+                <Card className="border-border/50 bg-card/50 backdrop-blur-sm lg:col-span-1">
+                    <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                            <CardTitle className="flex items-center gap-2 text-base">
+                                <Target className="h-4 w-4 text-violet-400" />
+                                Hábitos de hoy
+                            </CardTitle>
+                            <Badge variant="secondary" className="text-xs">
+                                {progressPercent}%
+                            </Badge>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="space-y-1.5">
+                        {habits.map((habit) => {
+                            const done = optimisticToday[habit.id];
+                            return (
+                                <div
+                                    key={habit.id}
+                                    className="group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-smooth hover:bg-white/5 cursor-pointer"
+                                    onClick={() => handleToggle(habit.id)}
+                                >
+                                    <button
+                                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-smooth ${done
+                                            ? "border-violet-500 bg-violet-500 text-white"
+                                            : "border-border hover:border-violet-400"
+                                            }`}
+                                    >
+                                        {done && <CheckCircle2 className="h-3.5 w-3.5" />}
+                                    </button>
+                                    <span className="text-xl leading-none">{habit.icon}</span>
+                                    <span
+                                        className={`flex-1 text-sm ${done
+                                            ? "text-muted-foreground line-through"
+                                            : "text-foreground"
+                                            }`}
+                                    >
+                                        {habit.name}
+                                    </span>
+                                    {streaks[habit.id] > 0 && (
+                                        <span className="text-xs text-orange-400 font-medium">
+                                            🔥{streaks[habit.id]}
+                                        </span>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </CardContent>
+                </Card>
+
+                {/* Mental State Chart + Sliders */}
+                <Card className="border-border/50 bg-card/50 backdrop-blur-sm lg:col-span-2">
+                    <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                            <CardTitle className="flex items-center gap-2 text-base">
+                                <Brain className="h-4 w-4 text-cyan-400" />
+                                Estado mental
+                            </CardTitle>
+                            <Badge variant="secondary" className="text-xs">
+                                Últimos 7 días
+                            </Badge>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-6">
+                            {/* Chart */}
+                            <div className="flex items-end gap-2 h-[140px]">
+                                {moodData.map((d, i) => (
+                                    <div
+                                        key={i}
+                                        className="flex-1 flex flex-col items-center gap-1.5"
+                                    >
+                                        <div className="w-full flex flex-col items-center gap-1 flex-1 justify-end">
+                                            <div
+                                                className="w-3 rounded-full bg-gradient-to-t from-cyan-600 to-cyan-400 transition-all duration-500"
+                                                style={{
+                                                    height: `${d.mood * 10}%`,
+                                                    minHeight: d.mood > 0 ? "4px" : "0",
+                                                }}
+                                            />
+                                            <div
+                                                className="w-3 rounded-full bg-gradient-to-t from-pink-600 to-pink-400 transition-all duration-500"
+                                                style={{
+                                                    height: `${d.motivation * 10}%`,
+                                                    minHeight: d.motivation > 0 ? "4px" : "0",
+                                                }}
+                                            />
+                                        </div>
+                                        <span className="text-[10px] text-muted-foreground">
+                                            {d.day}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="flex items-center gap-4 justify-center">
+                                <div className="flex items-center gap-1.5">
+                                    <div className="h-2 w-2 rounded-full bg-cyan-400" />
+                                    <span className="text-xs text-muted-foreground">Mood</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    <div className="h-2 w-2 rounded-full bg-pink-400" />
+                                    <span className="text-xs text-muted-foreground">
+                                        Motivación
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Sliders */}
+                            <div className="border-t border-border/50 pt-4">
+                                <MentalStateInput initialState={todayMood} />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Monthly Heatmap */}
+            <MonthlyHeatmap data={monthlyData} monthLabel={monthLabel} />
+        </div>
+    );
+}

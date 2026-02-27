@@ -1,22 +1,35 @@
+export const dynamic = 'force-dynamic';
+
 import { Target, Plus, Filter } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { TEMP_USER_ID } from "@/lib/constants";
+import {
+    getHabitsWithWeeklyLogs,
+} from "@/app/actions/habits";
+import { computeStreak } from "@/lib/habits";
+import { HabitCard } from "@/components/habits/HabitCard";
 
-const habits = [
-    { name: "Despertar a las 6:00", icon: "⏰", color: "#8b5cf6", frequency: "daily", streak: 12 },
-    { name: "Gym", icon: "🏋️", color: "#06b6d4", frequency: "daily", streak: 8 },
-    { name: "Lectura / Learning", icon: "📚", color: "#f59e0b", frequency: "daily", streak: 15 },
-    { name: "Day Trading", icon: "📈", color: "#10b981", frequency: "weekly", streak: 4 },
-    { name: "Budget Tracking", icon: "💰", color: "#ec4899", frequency: "daily", streak: 6 },
-    { name: "Prayer / Holy", icon: "🙏", color: "#a855f7", frequency: "daily", streak: 20 },
-    { name: "No Alcohol", icon: "🚫", color: "#ef4444", frequency: "daily", streak: 30 },
-    { name: "Read/Music/Sleep", icon: "🎵", color: "#3b82f6", frequency: "daily", streak: 10 },
-    { name: "Goal Journaling", icon: "📝", color: "#6366f1", frequency: "daily", streak: 7 },
-    { name: "Cold Shower", icon: "🧊", color: "#0ea5e9", frequency: "daily", streak: 3 },
-];
+export default async function HabitsPage() {
+    const habits = await getHabitsWithWeeklyLogs(TEMP_USER_ID);
 
-export default function HabitsPage() {
+    // Compute streaks
+    const streaks: Record<string, number> = {};
+    for (const habit of habits) {
+        streaks[habit.id] = computeStreak(habit.logs);
+    }
+
+    // Generate last 7 days ISO strings
+    const now = new Date();
+    const weekDates: string[] = [];
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(d.getDate() - i);
+        weekDates.push(
+            `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+        );
+    }
+
     return (
         <div className="p-6 lg:p-8 space-y-8">
             {/* Header */}
@@ -35,7 +48,10 @@ export default function HabitsPage() {
                         <Filter className="h-3.5 w-3.5" />
                         Filtrar
                     </Button>
-                    <Button size="sm" className="gap-1.5 bg-violet-600 hover:bg-violet-700">
+                    <Button
+                        size="sm"
+                        className="gap-1.5 bg-violet-600 hover:bg-violet-700"
+                    >
                         <Plus className="h-3.5 w-3.5" />
                         Nuevo hábito
                     </Button>
@@ -44,62 +60,24 @@ export default function HabitsPage() {
 
             {/* Habits Grid */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {habits.map((habit, i) => (
-                    <Card
-                        key={i}
-                        className="group border-border/50 bg-card/50 backdrop-blur-sm transition-smooth hover:border-violet-500/30 hover:shadow-lg hover:shadow-violet-500/5 cursor-pointer"
-                    >
-                        <CardContent className="p-5">
-                            <div className="flex items-start justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div
-                                        className="flex h-10 w-10 items-center justify-center rounded-xl text-xl transition-smooth group-hover:scale-110"
-                                        style={{ backgroundColor: `${habit.color}15` }}
-                                    >
-                                        {habit.icon}
-                                    </div>
-                                    <div>
-                                        <p className="font-medium text-sm">{habit.name}</p>
-                                        <p className="text-xs text-muted-foreground capitalize">
-                                            {habit.frequency === "daily" ? "Diario" : "Semanal"}
-                                        </p>
-                                    </div>
-                                </div>
-                                <Badge
-                                    variant="secondary"
-                                    className="text-[10px] font-semibold"
-                                    style={{ color: habit.color }}
-                                >
-                                    🔥 {habit.streak}
-                                </Badge>
-                            </div>
-
-                            {/* Mini week view */}
-                            <div className="mt-4 flex gap-1">
-                                {["L", "M", "X", "J", "V", "S", "D"].map((day, j) => {
-                                    const done = Math.random() > 0.3;
-                                    return (
-                                        <div
-                                            key={j}
-                                            className="flex-1 flex flex-col items-center gap-1"
-                                        >
-                                            <div
-                                                className="h-6 w-full rounded-sm transition-smooth"
-                                                style={{
-                                                    backgroundColor: done
-                                                        ? `${habit.color}80`
-                                                        : "hsl(var(--muted) / 0.3)",
-                                                }}
-                                            />
-                                            <span className="text-[9px] text-muted-foreground">
-                                                {day}
-                                            </span>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </CardContent>
-                    </Card>
+                {habits.map((habit) => (
+                    <HabitCard
+                        key={habit.id}
+                        habit={{
+                            id: habit.id,
+                            name: habit.name,
+                            icon: habit.icon,
+                            color: habit.color,
+                            frequency: habit.frequency,
+                            logs: habit.logs.map((l) => ({
+                                id: l.id,
+                                date: l.date,
+                                completed: l.completed,
+                            })),
+                        }}
+                        streak={streaks[habit.id]}
+                        weekDates={weekDates}
+                    />
                 ))}
 
                 {/* Add New Habit Card */}
