@@ -12,6 +12,7 @@ export async function upsertMentalState(
     mood: number,
     motivation: number
 ) {
+    console.log("[upsertMentalState] userId:", userId, "date:", dateISO, "mood:", mood, "motivation:", motivation);
     const date = new Date(dateISO);
     const dateOnly = new Date(
         Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
@@ -28,6 +29,7 @@ export async function upsertMentalState(
         create: { userId, date: dateOnly, mood, motivation },
     });
 
+    console.log("[upsertMentalState] Saved successfully");
     revalidatePath("/");
 }
 

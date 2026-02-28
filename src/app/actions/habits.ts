@@ -8,6 +8,7 @@ import { revalidatePath } from "next/cache";
  * If one exists → delete it (un-complete). If not → create it (complete).
  */
 export async function toggleHabitLog(habitId: string, dateISO: string) {
+    console.log("[toggleHabitLog] habitId:", habitId, "dateISO:", dateISO);
     const date = new Date(dateISO);
     // Normalize to date-only (strip time)
     const dateOnly = new Date(
@@ -24,15 +25,17 @@ export async function toggleHabitLog(habitId: string, dateISO: string) {
     });
 
     if (existing) {
+        console.log("[toggleHabitLog] Deleting existing log:", existing.id);
         await prisma.habitLog.delete({ where: { id: existing.id } });
     } else {
-        await prisma.habitLog.create({
+        const created = await prisma.habitLog.create({
             data: {
                 habitId,
                 date: dateOnly,
                 completed: true,
             },
         });
+        console.log("[toggleHabitLog] Created new log:", created.id);
     }
 
     revalidatePath("/");
@@ -43,6 +46,7 @@ export async function toggleHabitLog(habitId: string, dateISO: string) {
  * Get all habits for a user with logs from the last 7 days.
  */
 export async function getHabitsWithLogs(userId: string) {
+    console.log("[getHabitsWithLogs] userId:", userId);
     // Ensure the TEMP user exists first so relations don't break in empty DBs
     await prisma.user.upsert({
         where: { id: userId },
@@ -76,6 +80,7 @@ export async function getHabitsWithLogs(userId: string) {
         },
     });
 
+    console.log("[getHabitsWithLogs] Found", habits.length, "habits");
     return habits;
 }
 
