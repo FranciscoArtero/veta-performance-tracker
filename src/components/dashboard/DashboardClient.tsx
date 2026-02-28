@@ -125,19 +125,19 @@ export function DashboardClient({
     }
 
     return (
-        <div className="p-6 lg:p-8 space-y-8">
+        <div className="p-4 md:p-6 lg:p-8 space-y-6 md:space-y-8">
             {/* Header */}
             <div className="space-y-1">
-                <h1 className="text-2xl font-bold tracking-tight lg:text-3xl">
+                <h1 className="text-xl md:text-2xl font-bold tracking-tight lg:text-3xl">
                     {greeting || "\u00A0"} 👋
                 </h1>
-                <p className="text-muted-foreground capitalize">
+                <p className="text-sm md:text-base text-muted-foreground capitalize">
                     {todayFormatted || "\u00A0"}
                 </p>
             </div>
 
             {/* Stats Row */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
                 <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
                     <CardContent className="p-4">
                         <div className="flex items-center justify-between">

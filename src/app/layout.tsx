@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -14,6 +14,14 @@ const geistMono = localFont({
   weight: "100 900",
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: "#0a0a0a",
+};
+
 export const metadata: Metadata = {
   title: "Veta — Performance Tracker",
   description:
@@ -25,6 +33,11 @@ export const metadata: Metadata = {
     "productivity",
     "fitness",
   ],
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Veta",
+  },
 };
 
 export default function RootLayout({
@@ -38,7 +51,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} font-[family-name:var(--font-geist-sans)] antialiased`}
       >
         <Sidebar />
-        <main className="ml-[240px] min-h-screen bg-background transition-all duration-300">
+        <main className="min-h-screen bg-background transition-all duration-300 pb-16 md:pb-0 md:ml-[240px]">
           {children}
         </main>
       </body>
