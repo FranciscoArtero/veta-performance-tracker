@@ -431,8 +431,8 @@ export function DashboardClient({
                             >
                                 <div
                                     className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border-2 transition-smooth ${task.completed
-                                            ? "border-emerald-500 bg-emerald-500 text-white"
-                                            : "border-border/70 hover:border-emerald-400"
+                                        ? "border-emerald-500 bg-emerald-500 text-white"
+                                        : "border-border/70 hover:border-emerald-400"
                                         }`}
                                 >
                                     {task.completed && <CheckCircle2 className="h-4 w-4" />}
@@ -481,19 +481,17 @@ export function DashboardClient({
                                         key={i}
                                         className="flex-1 flex flex-col items-center gap-1.5"
                                     >
-                                        <div className="w-full flex flex-col items-center gap-1 flex-1 justify-end">
+                                        <div className="w-full flex items-end justify-center gap-0.5 flex-1">
                                             <div
-                                                className="w-3 rounded-full bg-gradient-to-t from-cyan-600 to-cyan-400 transition-all duration-500"
+                                                className="w-2.5 rounded-full bg-gradient-to-t from-cyan-600 to-cyan-400 transition-all duration-500"
                                                 style={{
-                                                    height: `${d.mood * 10}%`,
-                                                    minHeight: d.mood > 0 ? "4px" : "0",
+                                                    height: d.mood > 0 ? `${Math.max(d.mood * 10, 8)}%` : "0",
                                                 }}
                                             />
                                             <div
-                                                className="w-3 rounded-full bg-gradient-to-t from-pink-600 to-pink-400 transition-all duration-500"
+                                                className="w-2.5 rounded-full bg-gradient-to-t from-pink-600 to-pink-400 transition-all duration-500"
                                                 style={{
-                                                    height: `${d.motivation * 10}%`,
-                                                    minHeight: d.motivation > 0 ? "4px" : "0",
+                                                    height: d.motivation > 0 ? `${Math.max(d.motivation * 10, 8)}%` : "0",
                                                 }}
                                             />
                                         </div>

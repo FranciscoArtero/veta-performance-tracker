@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect, useCallback } from "react";
 import {
     Dialog,
     DialogContent,
@@ -32,10 +32,11 @@ export function DayDetailModal({ open, onClose, dateISO }: Props) {
     const [notes, setNotes] = useState("");
     const [, startTransition] = useTransition();
 
-    // Fetch data when modal opens
-    const loadData = async () => {
+    // Fetch data when modal opens or dateISO changes
+    const loadData = useCallback(async () => {
         if (!dateISO) return;
         setLoading(true);
+        setData(null);
         try {
             const result = await getDayDetail(TEMP_USER_ID, dateISO);
             setData(result);
@@ -44,7 +45,16 @@ export function DayDetailModal({ open, onClose, dateISO }: Props) {
             console.error("Failed to load day detail:", e);
         }
         setLoading(false);
-    };
+    }, [dateISO]);
+
+    useEffect(() => {
+        if (open && dateISO) {
+            loadData();
+        } else {
+            setData(null);
+            setNotes("");
+        }
+    }, [open, dateISO, loadData]);
 
     // Save notes (micro-journaling)
     function handleSaveNotes() {
@@ -70,13 +80,7 @@ export function DayDetailModal({ open, onClose, dateISO }: Props) {
         : "";
 
     return (
-        <Dialog
-            open={open}
-            onOpenChange={(isOpen) => {
-                if (isOpen) loadData();
-                else onClose();
-            }}
-        >
+        <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle className="flex items-center justify-between">
