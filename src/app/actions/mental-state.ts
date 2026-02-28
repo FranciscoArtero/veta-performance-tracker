@@ -4,19 +4,28 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
 /**
- * Upsert mood and motivation for a given day.
+ * Upsert mood and motivation for a given day, with optional notes.
  */
 export async function upsertMentalState(
     userId: string,
     dateISO: string,
     mood: number,
-    motivation: number
+    motivation: number,
+    notes?: string | null
 ) {
-    console.log("[upsertMentalState] userId:", userId, "date:", dateISO, "mood:", mood, "motivation:", motivation);
+    console.log("[upsertMentalState] userId:", userId, "date:", dateISO, "mood:", mood, "motivation:", motivation, "notes:", notes);
     const date = new Date(dateISO);
     const dateOnly = new Date(
         Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
     );
+
+    const updateData: { mood: number; motivation: number; notes?: string | null } = { mood, motivation };
+    const createData: { userId: string; date: Date; mood: number; motivation: number; notes?: string | null } = { userId, date: dateOnly, mood, motivation };
+
+    if (notes !== undefined) {
+        updateData.notes = notes;
+        createData.notes = notes;
+    }
 
     await prisma.mentalState.upsert({
         where: {
@@ -25,8 +34,8 @@ export async function upsertMentalState(
                 date: dateOnly,
             },
         },
-        update: { mood, motivation },
-        create: { userId, date: dateOnly, mood, motivation },
+        update: updateData,
+        create: createData,
     });
 
     console.log("[upsertMentalState] Saved successfully");

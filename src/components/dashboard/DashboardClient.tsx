@@ -12,9 +12,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { toggleHabitLog } from "@/app/actions/habits";
+import { createTask, toggleTask, deleteTask } from "@/app/actions/tasks";
 import { MentalStateInput } from "./MentalStateInput";
 import { MonthlyHeatmap } from "./MonthlyHeatmap";
-import { Plus } from "lucide-react";
+import { Plus, Trash2, ListTodo } from "lucide-react";
+import { TEMP_USER_ID } from "@/lib/constants";
 
 type HabitWithLogs = {
     id: string;
@@ -40,6 +42,12 @@ type MonthlyData = {
     data: { day: number; ratio: number }[];
 };
 
+type TaskItem = {
+    id: string;
+    title: string;
+    completed: boolean;
+};
+
 type Props = {
     habits: HabitWithLogs[];
     streaks: Record<string, number>;
@@ -48,6 +56,7 @@ type Props = {
     monthlyData: MonthlyData;
     todayMood: { mood: number; motivation: number } | null;
     monthLabel: string;
+    tasks: TaskItem[];
 };
 
 function getTodayISO() {
@@ -72,10 +81,27 @@ export function DashboardClient({
     monthlyData,
     todayMood,
     monthLabel,
+    tasks: initialTasks,
 }: Props) {
     const [greeting, setGreeting] = useState("");
     const [todayFormatted, setTodayFormatted] = useState("");
     const [, startTransition] = useTransition();
+    const [newTaskTitle, setNewTaskTitle] = useState("");
+    const [optimisticTasks, setOptimisticTasks] = useOptimistic(
+        initialTasks,
+        (state: TaskItem[], action: { type: string; task?: TaskItem; id?: string }) => {
+            switch (action.type) {
+                case "add":
+                    return action.task ? [...state, action.task] : state;
+                case "toggle":
+                    return state.map((t) => t.id === action.id ? { ...t, completed: !t.completed } : t);
+                case "delete":
+                    return state.filter((t) => t.id !== action.id);
+                default:
+                    return state;
+            }
+        }
+    );
 
     // Build initial today-status map
     const initialTodayMap: Record<string, boolean> = {};
@@ -333,7 +359,98 @@ export function DashboardClient({
                     </CardContent>
                 </Card>
 
-                {/* Mental State Chart + Sliders */}
+                {/* Tasks of the Day */}
+                <Card className="border-border/50 bg-card/50 backdrop-blur-sm lg:col-span-1">
+                    <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                            <CardTitle className="flex items-center gap-2 text-base">
+                                <ListTodo className="h-4 w-4 text-emerald-400" />
+                                Tareas del día
+                            </CardTitle>
+                            <Badge variant="secondary" className="text-xs">
+                                {optimisticTasks.filter((t) => t.completed).length}/{optimisticTasks.length}
+                            </Badge>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                        {/* Add task input */}
+                        <form
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                if (!newTaskTitle.trim()) return;
+                                const tempTask = { id: `temp-${Date.now()}`, title: newTaskTitle.trim(), completed: false };
+                                startTransition(async () => {
+                                    setOptimisticTasks({ type: "add", task: tempTask });
+                                    await createTask(TEMP_USER_ID, newTaskTitle.trim());
+                                });
+                                setNewTaskTitle("");
+                            }}
+                            className="flex gap-2"
+                        >
+                            <input
+                                type="text"
+                                value={newTaskTitle}
+                                onChange={(e) => setNewTaskTitle(e.target.value)}
+                                placeholder="Agregar tarea..."
+                                className="flex-1 rounded-lg border border-border/50 bg-background/50 px-3 py-2 text-sm placeholder:text-muted-foreground/50 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 transition-smooth"
+                            />
+                            <button
+                                type="submit"
+                                title="Agregar tarea"
+                                disabled={!newTaskTitle.trim()}
+                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400 transition-smooth hover:bg-emerald-500/30 disabled:opacity-30"
+                            >
+                                <Plus className="h-4 w-4" />
+                            </button>
+                        </form>
+
+                        {/* Task list */}
+                        {optimisticTasks.length === 0 && (
+                            <p className="text-xs text-muted-foreground/50 text-center py-4">
+                                Sin tareas para hoy — ¡agregá una!
+                            </p>
+                        )}
+                        {optimisticTasks.map((task) => (
+                            <div
+                                key={task.id}
+                                className="group flex items-center gap-2.5 rounded-lg px-2.5 py-2 transition-smooth hover:bg-white/5"
+                            >
+                                <button
+                                    onClick={() => {
+                                        startTransition(async () => {
+                                            setOptimisticTasks({ type: "toggle", id: task.id });
+                                            await toggleTask(task.id);
+                                        });
+                                    }}
+                                    className={`flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-md border transition-smooth ${task.completed
+                                            ? "border-emerald-500 bg-emerald-500 text-white"
+                                            : "border-border hover:border-emerald-400"
+                                        }`}
+                                >
+                                    {task.completed && <CheckCircle2 className="h-3 w-3" />}
+                                </button>
+                                <span
+                                    className={`flex-1 text-sm ${task.completed ? "text-muted-foreground line-through" : "text-foreground"
+                                        }`}
+                                >
+                                    {task.title}
+                                </span>
+                                <button
+                                    onClick={() => {
+                                        startTransition(async () => {
+                                            setOptimisticTasks({ type: "delete", id: task.id });
+                                            await deleteTask(task.id);
+                                        });
+                                    }}
+                                    title="Eliminar tarea"
+                                    className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-400 transition-smooth"
+                                >
+                                    <Trash2 className="h-3 w-3" />
+                                </button>
+                            </div>
+                        ))}
+                    </CardContent>
+                </Card>
                 <Card className="border-border/50 bg-card/50 backdrop-blur-sm lg:col-span-2">
                     <CardHeader className="pb-3">
                         <div className="flex items-center justify-between">

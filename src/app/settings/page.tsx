@@ -50,7 +50,7 @@ export default function SettingsPage() {
                     Configuración
                 </h1>
                 <p className="text-muted-foreground">
-                    Personalizá tu experiencia en Veta.
+                    Personalizá tu experiencia en CORE.
                 </p>
             </div>
 
@@ -85,7 +85,7 @@ export default function SettingsPage() {
 
             <div className="max-w-2xl">
                 <p className="text-xs text-muted-foreground">
-                    Veta Performance Tracker v0.1.0 — Construido con ❤️
+                    CORE Performance OS v0.2.0 — Construido con ❤️
                 </p>
             </div>
         </div>

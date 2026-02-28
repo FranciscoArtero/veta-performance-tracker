@@ -23,7 +23,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Veta — Performance Tracker",
+  title: "CORE — Performance OS",
   description:
     "Track your habits, mental state, finances and workouts. Build better habits, achieve more.",
   keywords: [
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Veta",
+    title: "CORE",
   },
 };
 

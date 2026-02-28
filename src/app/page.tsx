@@ -5,6 +5,7 @@ import {
   getHabitsWithLogs,
   getMonthlyLogs,
 } from "@/app/actions/habits";
+import { getTodayTasks } from "@/app/actions/tasks";
 import { computeStreak } from "@/lib/habits";
 import {
   getMentalStateWeek,
@@ -14,11 +15,12 @@ import { DashboardClient } from "@/components/dashboard/DashboardClient";
 
 export default async function DashboardPage() {
   try {
-    const [habits, moodData, monthlyData, todayMood] = await Promise.all([
+    const [habits, moodData, monthlyData, todayMood, tasks] = await Promise.all([
       getHabitsWithLogs(TEMP_USER_ID),
       getMentalStateWeek(TEMP_USER_ID),
       getMonthlyLogs(TEMP_USER_ID),
       getTodayMentalState(TEMP_USER_ID),
+      getTodayTasks(TEMP_USER_ID),
     ]);
 
     // Compute streaks for each habit
@@ -59,6 +61,7 @@ export default async function DashboardPage() {
         monthlyData={monthlyData}
         todayMood={todayMood}
         monthLabel={monthLabel}
+        tasks={tasks.map((t) => ({ id: t.id, title: t.title, completed: t.completed }))}
       />
     );
   } catch (error: unknown) {

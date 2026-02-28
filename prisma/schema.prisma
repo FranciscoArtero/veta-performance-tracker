@@ -17,6 +17,7 @@ model User {
   image        String?
   habits       Habit[]
   mentalStates MentalState[]
+  tasks        Task[]
   // Future relations:
   // expenses     Expense[]
   // workouts     Workout[]
@@ -75,6 +76,21 @@ model MentalState {
   @@index([userId])
   @@index([date])
   @@map("mental_states")
+}
+
+model Task {
+  id        String   @id @default(cuid())
+  title     String
+  completed Boolean  @default(false)
+  date      DateTime @db.Date
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([date])
+  @@index([userId, date])
+  @@map("tasks")
 }
 
 // ============================================
