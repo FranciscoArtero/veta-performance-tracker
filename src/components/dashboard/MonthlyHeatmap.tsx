@@ -106,28 +106,31 @@ export function MonthlyHeatmap({ data, monthLabel }: Props) {
                             return (
                                 <div
                                     key={i}
-                                    className={`aspect-square rounded-sm transition-smooth relative group ${isFuture
-                                            ? "cursor-default"
-                                            : "cursor-pointer hover:scale-110 hover:ring-1 hover:ring-violet-400/50 active:scale-95"
+                                    className={`aspect-square rounded-sm transition-smooth relative group select-none ${isFuture
+                                        ? "cursor-default"
+                                        : "cursor-pointer hover:scale-110 hover:ring-1 hover:ring-violet-400/50 active:scale-95"
                                         }`}
                                     style={{
                                         backgroundColor: isFuture
                                             ? "hsl(var(--muted) / 0.3)"
                                             : `hsla(263, 70%, 55%, ${0.15 + intensity * 0.7})`,
+                                        WebkitUserSelect: "none",
+                                        touchAction: "manipulation",
+                                        WebkitTouchCallout: "none",
                                     }}
                                     // Desktop: hover tooltip + click to open
                                     onClick={() => handleClick(d.day, isFuture)}
                                     // Mobile: long press = tooltip, short tap = modal
-                                    onTouchStart={() => handleTouchStart(d.day, isFuture)}
-                                    onTouchEnd={() => handleTouchEnd(d.day, isFuture)}
+                                    onTouchStart={(e) => { e.preventDefault(); handleTouchStart(d.day, isFuture); }}
+                                    onTouchEnd={(e) => { e.preventDefault(); handleTouchEnd(d.day, isFuture); }}
                                     onTouchCancel={handleTouchCancel}
                                 >
                                     {/* Tooltip — shows on desktop hover OR mobile long press */}
                                     {!isFuture && (
                                         <div
                                             className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 pointer-events-none transition-opacity z-50 ${showTooltip
-                                                    ? "opacity-100"
-                                                    : "opacity-0 group-hover:opacity-100"
+                                                ? "opacity-100"
+                                                : "opacity-0 group-hover:opacity-100"
                                                 }`}
                                         >
                                             <div className="bg-popover border border-border rounded-md px-2 py-1 shadow-lg whitespace-nowrap">

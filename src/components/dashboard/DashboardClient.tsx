@@ -135,8 +135,15 @@ export function DashboardClient({
 
     const completedToday = Object.values(optimisticToday).filter(Boolean).length;
     const totalToday = habits.length;
-    const progressPercent =
-        totalToday > 0 ? Math.round((completedToday / totalToday) * 100) : 0;
+    const completedTasksToday = optimisticTasks.filter((t) => t.completed).length;
+    const totalTasksToday = optimisticTasks.length;
+
+    // Weighted score: 70% habits + 30% tasks (if tasks exist)
+    const habitScore = totalToday > 0 ? completedToday / totalToday : 0;
+    const taskScore = totalTasksToday > 0 ? completedTasksToday / totalTasksToday : 0;
+    const progressPercent = totalTasksToday > 0
+        ? Math.round((habitScore * 0.7 + taskScore * 0.3) * 100)
+        : Math.round(habitScore * 100);
 
     // Average mood from this week
     const moodValues = moodData.filter((d) => d.mood > 0);
@@ -413,22 +420,23 @@ export function DashboardClient({
                         {optimisticTasks.map((task) => (
                             <div
                                 key={task.id}
-                                className="group flex items-center gap-2.5 rounded-lg px-2.5 py-2 transition-smooth hover:bg-white/5"
+                                className="group flex items-center gap-3 rounded-lg px-3 py-3 transition-smooth hover:bg-white/5 cursor-pointer select-none"
+                                style={{ WebkitUserSelect: "none", touchAction: "manipulation" }}
+                                onClick={() => {
+                                    startTransition(async () => {
+                                        setOptimisticTasks({ type: "toggle", id: task.id });
+                                        await toggleTask(task.id);
+                                    });
+                                }}
                             >
-                                <button
-                                    onClick={() => {
-                                        startTransition(async () => {
-                                            setOptimisticTasks({ type: "toggle", id: task.id });
-                                            await toggleTask(task.id);
-                                        });
-                                    }}
-                                    className={`flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-md border transition-smooth ${task.completed
+                                <div
+                                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border-2 transition-smooth ${task.completed
                                             ? "border-emerald-500 bg-emerald-500 text-white"
-                                            : "border-border hover:border-emerald-400"
+                                            : "border-border/70 hover:border-emerald-400"
                                         }`}
                                 >
-                                    {task.completed && <CheckCircle2 className="h-3 w-3" />}
-                                </button>
+                                    {task.completed && <CheckCircle2 className="h-4 w-4" />}
+                                </div>
                                 <span
                                     className={`flex-1 text-sm ${task.completed ? "text-muted-foreground line-through" : "text-foreground"
                                         }`}
@@ -436,16 +444,17 @@ export function DashboardClient({
                                     {task.title}
                                 </span>
                                 <button
-                                    onClick={() => {
+                                    onClick={(e) => {
+                                        e.stopPropagation();
                                         startTransition(async () => {
                                             setOptimisticTasks({ type: "delete", id: task.id });
                                             await deleteTask(task.id);
                                         });
                                     }}
                                     title="Eliminar tarea"
-                                    className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-400 transition-smooth"
+                                    className="opacity-100 md:opacity-0 md:group-hover:opacity-100 text-muted-foreground hover:text-red-400 transition-smooth p-1"
                                 >
-                                    <Trash2 className="h-3 w-3" />
+                                    <Trash2 className="h-3.5 w-3.5" />
                                 </button>
                             </div>
                         ))}

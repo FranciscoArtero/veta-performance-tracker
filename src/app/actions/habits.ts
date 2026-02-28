@@ -219,6 +219,7 @@ export async function getHabitsWithWeeklyLogs(userId: string) {
 
 /**
  * Get logs for the current month for the heatmap.
+ * Ratio uses weighted scoring: 70% habits + 30% tasks.
  */
 export async function getMonthlyLogs(userId: string) {
     const now = new Date();
@@ -232,29 +233,57 @@ export async function getMonthlyLogs(userId: string) {
 
     const totalHabits = habits.length || 1;
 
-    const logs = await prisma.habitLog.findMany({
-        where: {
-            habitId: { in: habits.map((h) => h.id) },
-            date: { gte: startOfMonth, lte: endOfMonth },
-            completed: true,
-        },
-    });
+    const [logs, tasks] = await Promise.all([
+        prisma.habitLog.findMany({
+            where: {
+                habitId: { in: habits.map((h) => h.id) },
+                date: { gte: startOfMonth, lte: endOfMonth },
+                completed: true,
+            },
+        }),
+        prisma.task.findMany({
+            where: {
+                userId,
+                date: { gte: startOfMonth, lte: endOfMonth },
+            },
+            select: { date: true, completed: true },
+        }),
+    ]);
 
     const daysInMonth = endOfMonth.getUTCDate();
-    const dayMap: Record<number, number> = {};
-    for (let d = 1; d <= daysInMonth; d++) dayMap[d] = 0;
+
+    // Count habit completions per day
+    const habitMap: Record<number, number> = {};
+    for (let d = 1; d <= daysInMonth; d++) habitMap[d] = 0;
     for (const log of logs) {
         const day = new Date(log.date).getUTCDate();
-        dayMap[day] = (dayMap[day] || 0) + 1;
+        habitMap[day] = (habitMap[day] || 0) + 1;
+    }
+
+    // Count tasks per day (total + completed)
+    const taskTotalMap: Record<number, number> = {};
+    const taskDoneMap: Record<number, number> = {};
+    for (const t of tasks) {
+        const day = new Date(t.date).getUTCDate();
+        taskTotalMap[day] = (taskTotalMap[day] || 0) + 1;
+        if (t.completed) taskDoneMap[day] = (taskDoneMap[day] || 0) + 1;
     }
 
     const result: { day: number; ratio: number }[] = [];
     const todayDay = now.getDate();
     for (let d = 1; d <= daysInMonth; d++) {
-        result.push({
-            day: d,
-            ratio: d <= todayDay ? dayMap[d] / totalHabits : -1,
-        });
+        if (d > todayDay) {
+            result.push({ day: d, ratio: -1 });
+        } else {
+            const habitScore = habitMap[d] / totalHabits;
+            const dayTasks = taskTotalMap[d] || 0;
+            if (dayTasks > 0) {
+                const taskScore = (taskDoneMap[d] || 0) / dayTasks;
+                result.push({ day: d, ratio: habitScore * 0.7 + taskScore * 0.3 });
+            } else {
+                result.push({ day: d, ratio: habitScore });
+            }
+        }
     }
 
     return { daysInMonth, data: result };
