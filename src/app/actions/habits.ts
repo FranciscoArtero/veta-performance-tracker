@@ -171,3 +171,72 @@ export async function getMonthlyLogs(userId: string) {
 
     return { daysInMonth, data: result };
 }
+
+/**
+ * Create a new habit for a user.
+ */
+export async function createHabit(
+    userId: string,
+    name: string,
+    icon: string,
+    color: string,
+    frequency: string
+) {
+    console.log("[createHabit] userId:", userId, "name:", name);
+
+    // Ensure user exists
+    await prisma.user.upsert({
+        where: { id: userId },
+        update: {},
+        create: { id: userId, email: "temp@example.com", name: "Temp User" },
+    });
+
+    // Get next order value
+    const lastHabit = await prisma.habit.findFirst({
+        where: { userId },
+        orderBy: { order: "desc" },
+        select: { order: true },
+    });
+
+    const habit = await prisma.habit.create({
+        data: {
+            userId,
+            name,
+            icon,
+            color,
+            frequency,
+            order: (lastHabit?.order ?? -1) + 1,
+        },
+    });
+
+    console.log("[createHabit] Created habit:", habit.id);
+    revalidatePath("/");
+    revalidatePath("/habits");
+    return habit;
+}
+
+/**
+ * Delete a habit and all its logs.
+ */
+export async function deleteHabit(habitId: string) {
+    console.log("[deleteHabit] habitId:", habitId);
+    await prisma.habit.delete({ where: { id: habitId } });
+    revalidatePath("/");
+    revalidatePath("/habits");
+}
+
+/**
+ * Update a habit's properties.
+ */
+export async function updateHabit(
+    habitId: string,
+    data: { name?: string; icon?: string; color?: string; frequency?: string; isActive?: boolean }
+) {
+    console.log("[updateHabit] habitId:", habitId, "data:", data);
+    await prisma.habit.update({
+        where: { id: habitId },
+        data,
+    });
+    revalidatePath("/");
+    revalidatePath("/habits");
+}

@@ -1,9 +1,10 @@
 "use client";
 
-import { useOptimistic, useTransition } from "react";
+import { useOptimistic, useTransition, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { toggleHabitLog } from "@/app/actions/habits";
+import { Trash2 } from "lucide-react";
+import { toggleHabitLog, deleteHabit } from "@/app/actions/habits";
 
 type HabitWithLogs = {
     id: string;
@@ -22,6 +23,7 @@ type Props = {
 
 export function HabitCard({ habit, streak, weekDates }: Props) {
     const [, startTransition] = useTransition();
+    const [confirmDelete, setConfirmDelete] = useState(false);
 
     // Build initial completion map for the week
     const initialWeekMap: Record<string, boolean> = {};
@@ -41,12 +43,21 @@ export function HabitCard({ habit, streak, weekDates }: Props) {
         })
     );
 
-
-
     function handleToggleDay(dateISO: string) {
         startTransition(async () => {
             setOptimisticWeek(dateISO);
             await toggleHabitLog(habit.id, dateISO);
+        });
+    }
+
+    function handleDelete() {
+        if (!confirmDelete) {
+            setConfirmDelete(true);
+            setTimeout(() => setConfirmDelete(false), 3000);
+            return;
+        }
+        startTransition(async () => {
+            await deleteHabit(habit.id);
         });
     }
 
@@ -68,13 +79,29 @@ export function HabitCard({ habit, streak, weekDates }: Props) {
                             </p>
                         </div>
                     </div>
-                    <Badge
-                        variant="secondary"
-                        className="text-[10px] font-semibold"
-                        style={{ color: habit.color }}
-                    >
-                        🔥 {streak}
-                    </Badge>
+                    <div className="flex items-center gap-1.5">
+                        <button
+                            onClick={handleDelete}
+                            title="Eliminar hábito"
+                            className={`rounded-md p-1.5 text-xs transition-smooth ${confirmDelete
+                                    ? "bg-red-500/20 text-red-400"
+                                    : "opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-400 hover:bg-red-500/10"
+                                }`}
+                        >
+                            {confirmDelete ? (
+                                <span className="text-[10px] font-medium px-1">¿Borrar?</span>
+                            ) : (
+                                <Trash2 className="h-3.5 w-3.5" />
+                            )}
+                        </button>
+                        <Badge
+                            variant="secondary"
+                            className="text-[10px] font-semibold"
+                            style={{ color: habit.color }}
+                        >
+                            🔥 {streak}
+                        </Badge>
+                    </div>
                 </div>
 
                 {/* Weekly grid */}
