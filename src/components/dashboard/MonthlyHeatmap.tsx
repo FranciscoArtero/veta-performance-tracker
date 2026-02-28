@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles } from "lucide-react";
@@ -16,8 +16,12 @@ type Props = {
 
 export function MonthlyHeatmap({ data, monthLabel }: Props) {
     const [selectedDay, setSelectedDay] = useState<number | null>(null);
+    const [tooltipDay, setTooltipDay] = useState<number | null>(null);
 
-    // Build ISO date for a day number
+    // Long press detection
+    const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isLongPress = useRef(false);
+
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth();
@@ -26,7 +30,48 @@ export function MonthlyHeatmap({ data, monthLabel }: Props) {
         return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
     }
 
-    function handleDayClick(day: number, isFuture: boolean) {
+    // --- Touch / click handlers ---
+
+    const handleTouchStart = useCallback((day: number, isFuture: boolean) => {
+        if (isFuture) return;
+        isLongPress.current = false;
+
+        longPressTimer.current = setTimeout(() => {
+            isLongPress.current = true;
+            setTooltipDay(day);
+        }, 300);
+    }, []);
+
+    const handleTouchEnd = useCallback((day: number, isFuture: boolean) => {
+        if (isFuture) return;
+
+        if (longPressTimer.current) {
+            clearTimeout(longPressTimer.current);
+            longPressTimer.current = null;
+        }
+
+        if (isLongPress.current) {
+            // Was a long press — just dismiss tooltip, don't open modal
+            setTooltipDay(null);
+        } else {
+            // Short tap — open modal
+            setSelectedDay(day);
+        }
+
+        isLongPress.current = false;
+    }, []);
+
+    const handleTouchCancel = useCallback(() => {
+        if (longPressTimer.current) {
+            clearTimeout(longPressTimer.current);
+            longPressTimer.current = null;
+        }
+        setTooltipDay(null);
+        isLongPress.current = false;
+    }, []);
+
+    // Desktop click
+    function handleClick(day: number, isFuture: boolean) {
         if (isFuture) return;
         setSelectedDay(day);
     }
@@ -56,24 +101,35 @@ export function MonthlyHeatmap({ data, monthLabel }: Props) {
                                 day: "numeric",
                                 month: "short",
                             });
+                            const showTooltip = tooltipDay === d.day || undefined;
 
                             return (
                                 <div
                                     key={i}
                                     className={`aspect-square rounded-sm transition-smooth relative group ${isFuture
-                                        ? "cursor-default"
-                                        : "cursor-pointer hover:scale-110 hover:ring-1 hover:ring-violet-400/50"
+                                            ? "cursor-default"
+                                            : "cursor-pointer hover:scale-110 hover:ring-1 hover:ring-violet-400/50 active:scale-95"
                                         }`}
                                     style={{
                                         backgroundColor: isFuture
                                             ? "hsl(var(--muted) / 0.3)"
                                             : `hsla(263, 70%, 55%, ${0.15 + intensity * 0.7})`,
                                     }}
-                                    onClick={() => handleDayClick(d.day, isFuture)}
+                                    // Desktop: hover tooltip + click to open
+                                    onClick={() => handleClick(d.day, isFuture)}
+                                    // Mobile: long press = tooltip, short tap = modal
+                                    onTouchStart={() => handleTouchStart(d.day, isFuture)}
+                                    onTouchEnd={() => handleTouchEnd(d.day, isFuture)}
+                                    onTouchCancel={handleTouchCancel}
                                 >
-                                    {/* Tooltip */}
+                                    {/* Tooltip — shows on desktop hover OR mobile long press */}
                                     {!isFuture && (
-                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50">
+                                        <div
+                                            className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 pointer-events-none transition-opacity z-50 ${showTooltip
+                                                    ? "opacity-100"
+                                                    : "opacity-0 group-hover:opacity-100"
+                                                }`}
+                                        >
                                             <div className="bg-popover border border-border rounded-md px-2 py-1 shadow-lg whitespace-nowrap">
                                                 <p className="text-[10px] font-medium text-foreground">{pct}% eficiencia</p>
                                                 <p className="text-[9px] text-muted-foreground capitalize">{dateLabel}</p>
