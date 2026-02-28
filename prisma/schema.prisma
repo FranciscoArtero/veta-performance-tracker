@@ -27,18 +27,21 @@ model User {
 }
 
 model Habit {
-  id        String     @id @default(cuid())
-  name      String
-  icon      String     @default("check") // Lucide icon name
-  color     String     @default("#8b5cf6") // hex color
-  frequency String     @default("daily") // daily | weekly | custom
-  isActive  Boolean    @default(true)
-  order     Int        @default(0)
-  userId    String
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  logs      HabitLog[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id         String     @id @default(cuid())
+  name       String
+  icon       String     @default("check") // Lucide icon name
+  color      String     @default("#8b5cf6") // hex color
+  frequency  String     @default("daily") // "daily" | "weekly_fixed" | "weekly_flexible"
+  weeklyMode String?    // "fixed" | "flexible" (null if daily)
+  goalDays   Int?       // e.g. 3 for "3x/week" (only for flexible)
+  targetDays Int[]      @default([]) // [1,3,5] = Mon-Wed-Fri (only for fixed, 0=Sun)
+  isActive   Boolean    @default(true)
+  order      Int        @default(0)
+  userId     String
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logs       HabitLog[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
 
   @@index([userId])
   @@map("habits")

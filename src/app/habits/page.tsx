@@ -46,6 +46,10 @@ export default async function HabitsPage() {
                                 icon: habit.icon,
                                 color: habit.color,
                                 frequency: habit.frequency,
+                                weeklyMode: habit.weeklyMode,
+                                goalDays: habit.goalDays,
+                                targetDays: habit.targetDays,
+                                weekSessions: habit.weekSessions,
                                 logs: habit.logs.map((l) => ({
                                     id: l.id,
                                     date: l.date,

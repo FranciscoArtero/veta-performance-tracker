@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { toggleHabitLog } from "@/app/actions/habits";
 import { MentalStateInput } from "./MentalStateInput";
 import { MonthlyHeatmap } from "./MonthlyHeatmap";
+import { Plus } from "lucide-react";
 
 type HabitWithLogs = {
     id: string;
@@ -21,6 +22,10 @@ type HabitWithLogs = {
     icon: string;
     color: string;
     frequency: string;
+    weeklyMode?: string | null;
+    goalDays?: number | null;
+    targetDays?: number[];
+    weekSessions?: number;
     logs: { id: string; date: Date; completed: boolean }[];
 };
 
@@ -244,6 +249,56 @@ export function DashboardClient({
                     <CardContent className="space-y-1.5">
                         {habits.map((habit) => {
                             const done = optimisticToday[habit.id];
+                            const isFlexible = habit.frequency === "weekly_flexible";
+                            const isFixed = habit.frequency === "weekly_fixed";
+                            const todayDow = new Date().getDay();
+                            const isTargetDay = isFixed ? (habit.targetDays ?? []).includes(todayDow) : true;
+
+                            // Weekly flexible: show session counter
+                            if (isFlexible) {
+                                return (
+                                    <div
+                                        key={habit.id}
+                                        className="group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-smooth hover:bg-white/5"
+                                    >
+                                        <span className="text-xl leading-none">{habit.icon}</span>
+                                        <span className="flex-1 text-sm text-foreground">
+                                            {habit.name}
+                                        </span>
+                                        <span className="text-xs text-muted-foreground font-medium">
+                                            {habit.weekSessions ?? 0}/{habit.goalDays ?? 3}
+                                        </span>
+                                        <button
+                                            onClick={() => handleToggle(habit.id)}
+                                            title="Agregar sesión"
+                                            className="flex h-5 w-5 items-center justify-center rounded-md bg-amber-500/20 text-amber-400 transition-smooth hover:scale-110"
+                                        >
+                                            <Plus className="h-3 w-3" />
+                                        </button>
+                                    </div>
+                                );
+                            }
+
+                            // Weekly fixed: show disabled state if not target day
+                            if (isFixed && !isTargetDay) {
+                                return (
+                                    <div
+                                        key={habit.id}
+                                        className="flex items-center gap-3 rounded-lg px-3 py-2.5 opacity-40"
+                                    >
+                                        <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-border/50" />
+                                        <span className="text-xl leading-none">{habit.icon}</span>
+                                        <span className="flex-1 text-sm text-muted-foreground">
+                                            {habit.name}
+                                        </span>
+                                        <span className="text-[10px] text-muted-foreground/60">
+                                            No es día
+                                        </span>
+                                    </div>
+                                );
+                            }
+
+                            // Daily + Fixed (target day): normal checkbox
                             return (
                                 <div
                                     key={habit.id}
