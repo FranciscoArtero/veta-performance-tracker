@@ -26,6 +26,15 @@ export default withAuth(
             return NextResponse.redirect(new URL("/profile", req.url));
         }
 
+        // ADMIN users: redirect from user-facing routes to /admin
+        const userOnlyRoutes = ["/", "/habits", "/finances", "/gym"];
+        if (
+            token?.role === "ADMIN" &&
+            userOnlyRoutes.includes(pathname)
+        ) {
+            return NextResponse.redirect(new URL("/admin", req.url));
+        }
+
         return NextResponse.next();
     },
     {

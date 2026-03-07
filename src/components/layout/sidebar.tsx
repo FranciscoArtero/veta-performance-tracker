@@ -76,11 +76,16 @@ export function Sidebar() {
   const userEmail = session?.user?.email || "";
   const userRole = (session?.user as { role?: string } | undefined)?.role;
 
-  // Build nav items dynamically — Admin only visible for ADMIN role
-  const allNavItems = [
-    ...navItems,
-    ...(mounted && userRole === "ADMIN" ? [{ label: "Admin", href: "/admin", icon: Shield }] : []),
-  ];
+  // Build nav items based on role
+  const allNavItems = userRole === "ADMIN"
+    ? [
+      { label: "Admin", href: "/admin", icon: Shield },
+      { label: "Perfil", href: "/profile", icon: User },
+    ]
+    : [
+      ...navItems,
+      ...(userRole === "ADMIN" ? [{ label: "Admin", href: "/admin", icon: Shield }] : []),
+    ];
 
   return (
     <>
