@@ -135,11 +135,7 @@ export function DayDetailModal({ open, onClose, dateISO }: Props) {
                                         >
                                             {h.name}
                                         </span>
-                                        {h.isBonus && (
-                                            <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-medium text-amber-400">
-                                                Bonus
-                                            </span>
-                                        )}
+
                                     </div>
                                 ))
                             )}

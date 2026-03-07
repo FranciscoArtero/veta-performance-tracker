@@ -378,9 +378,6 @@ export function DashboardClient({
                                                 <span className="flex-1 text-sm text-foreground">
                                                     {habit.name}
                                                 </span>
-                                                <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-medium text-amber-400">
-                                                    Bonus
-                                                </span>
                                                 <span className="text-xs text-muted-foreground font-medium">
                                                     {habit.weekSessions ?? 0}/{habit.goalDays ?? 3}
                                                 </span>
