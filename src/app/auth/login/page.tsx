@@ -5,6 +5,7 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Zap, Mail, Lock, Loader2 } from "lucide-react";
+import { InstallCard } from "@/components/pwa/InstallCard";
 
 export default function LoginPage() {
     const router = useRouter();
@@ -57,6 +58,8 @@ export default function LoginPage() {
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
+                <InstallCard />
+
                 {error && (
                     <div className="rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-400">
                         {error}

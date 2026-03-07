@@ -6,6 +6,7 @@ import { User, Lock, Globe, LogOut, Shield, Loader2, Check, AlertTriangle } from
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { changePassword, updateTimezone } from "@/app/actions/profile";
+import { InstallCard } from "@/components/pwa/InstallCard";
 
 const TIMEZONES = [
     { value: "America/Argentina/Buenos_Aires", label: "Argentina (Buenos Aires)" },
@@ -266,6 +267,11 @@ export function ProfileClient({ profile }: Props) {
                     </CardContent>
                 </Card>
             )}
+
+            <Separator className="opacity-50" />
+
+            {/* PWA Install */}
+            <InstallCard />
 
             <Separator className="opacity-50" />
 
