@@ -12,6 +12,7 @@ export default async function ProfilePage() {
                 name: profile.name ?? "",
                 email: profile.email,
                 timezone: profile.timezone,
+                mustChangePassword: profile.mustChangePassword,
                 createdAt: profile.createdAt.toISOString(),
             }} />
         </div>

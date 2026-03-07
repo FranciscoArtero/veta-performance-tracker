@@ -11,20 +11,23 @@ datasource db {
 }
 
 model User {
-  id           String        @id @default(cuid())
-  email        String        @unique
-  name         String?
-  password     String?
-  image        String?
-  timezone     String        @default("America/Argentina/Buenos_Aires")
-  habits       Habit[]
-  mentalStates MentalState[]
-  tasks        Task[]
+  id                 String        @id @default(cuid())
+  email              String        @unique
+  name               String?
+  password           String?
+  image              String?
+  role               String        @default("USER") // "USER" | "ADMIN"
+  isActive           Boolean       @default(true)
+  mustChangePassword Boolean       @default(false)
+  timezone           String        @default("America/Argentina/Buenos_Aires")
+  habits             Habit[]
+  mentalStates       MentalState[]
+  tasks              Task[]
   // Future relations:
   // expenses     Expense[]
   // workouts     Workout[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
 
   @@map("users")
 }

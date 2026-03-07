@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { signOut } from "next-auth/react";
-import { User, Lock, Globe, LogOut, Shield, Loader2, Check } from "lucide-react";
+import { signOut, useSession } from "next-auth/react";
+import { User, Lock, Globe, LogOut, Shield, Loader2, Check, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { changePassword, updateTimezone } from "@/app/actions/profile";
@@ -26,11 +26,13 @@ type Props = {
         name: string;
         email: string;
         timezone: string;
+        mustChangePassword: boolean;
         createdAt: string;
     };
 };
 
 export function ProfileClient({ profile }: Props) {
+    const { update: updateSession } = useSession();
     const [currentPassword, setCurrentPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
@@ -64,6 +66,10 @@ export function ProfileClient({ profile }: Props) {
                 setCurrentPassword("");
                 setNewPassword("");
                 setConfirmPassword("");
+                // Clear mustChangePassword from session
+                if (profile.mustChangePassword) {
+                    await updateSession({ mustChangePassword: false });
+                }
                 setTimeout(() => setPasswordSuccess(false), 3000);
             }
         });
@@ -87,6 +93,19 @@ export function ProfileClient({ profile }: Props) {
 
     return (
         <div className="space-y-6">
+            {/* Forced Password Change Banner */}
+            {profile.mustChangePassword && (
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
+                    <div>
+                        <p className="text-sm font-semibold text-amber-300">Cambio de contraseña obligatorio</p>
+                        <p className="text-xs text-amber-400/80 mt-0.5">
+                            Tu contraseña fue reseteada por un administrador. Tenés que cambiarla antes de continuar.
+                        </p>
+                    </div>
+                </div>
+            )}
+
             {/* Header */}
             <div className="space-y-1">
                 <h1 className="text-xl md:text-2xl font-bold tracking-tight lg:text-3xl flex items-center gap-2">
@@ -130,41 +149,15 @@ export function ProfileClient({ profile }: Props) {
                 </CardContent>
             </Card>
 
-            {/* Timezone */}
-            <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-                <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-base">
-                        <Globe className="h-4 w-4 text-cyan-400" />
-                        Zona horaria
-                        {tzSaved && (
-                            <span className="text-xs text-emerald-400 font-medium flex items-center gap-1 ml-auto">
-                                <Check className="h-3 w-3" /> Guardado
-                            </span>
-                        )}
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <select
-                        value={timezone}
-                        onChange={(e) => handleTimezoneChange(e.target.value)}
-                        aria-label="Zona horaria"
-                        className="w-full rounded-lg border border-border/50 bg-background/50 px-3 py-2.5 text-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500/50 transition-smooth"
-                    >
-                        {TIMEZONES.map((tz) => (
-                            <option key={tz.value} value={tz.value}>
-                                {tz.label}
-                            </option>
-                        ))}
-                    </select>
-                </CardContent>
-            </Card>
-
             {/* Change Password */}
-            <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <Card className={`border-border/50 bg-card/50 backdrop-blur-sm ${profile.mustChangePassword ? "ring-2 ring-amber-500/50" : ""}`}>
                 <CardHeader className="pb-3">
                     <CardTitle className="flex items-center gap-2 text-base">
                         <Lock className="h-4 w-4 text-amber-400" />
                         Cambiar contraseña
+                        {profile.mustChangePassword && (
+                            <span className="text-xs font-medium text-amber-400 ml-auto">⚠ Requerido</span>
+                        )}
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -242,6 +235,37 @@ export function ProfileClient({ profile }: Props) {
                     </form>
                 </CardContent>
             </Card>
+
+            {/* Timezone */}
+            {!profile.mustChangePassword && (
+                <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+                    <CardHeader className="pb-3">
+                        <CardTitle className="flex items-center gap-2 text-base">
+                            <Globe className="h-4 w-4 text-cyan-400" />
+                            Zona horaria
+                            {tzSaved && (
+                                <span className="text-xs text-emerald-400 font-medium flex items-center gap-1 ml-auto">
+                                    <Check className="h-3 w-3" /> Guardado
+                                </span>
+                            )}
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <select
+                            value={timezone}
+                            onChange={(e) => handleTimezoneChange(e.target.value)}
+                            aria-label="Zona horaria"
+                            className="w-full rounded-lg border border-border/50 bg-background/50 px-3 py-2.5 text-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500/50 transition-smooth"
+                        >
+                            {TIMEZONES.map((tz) => (
+                                <option key={tz.value} value={tz.value}>
+                                    {tz.label}
+                                </option>
+                            ))}
+                        </select>
+                    </CardContent>
+                </Card>
+            )}
 
             <Separator className="opacity-50" />
 

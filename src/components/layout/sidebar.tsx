@@ -13,6 +13,7 @@ import {
   ChevronRight,
   LogOut,
   User,
+  Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -64,6 +65,13 @@ export function Sidebar() {
 
   const userName = session?.user?.name || "Usuario";
   const userEmail = session?.user?.email || "";
+  const userRole = (session?.user as { role?: string } | undefined)?.role;
+
+  // Build nav items dynamically — Admin only visible for ADMIN role
+  const allNavItems = [
+    ...navItems,
+    ...(userRole === "ADMIN" ? [{ label: "Admin", href: "/admin", icon: Shield }] : []),
+  ];
 
   return (
     <>
@@ -91,7 +99,7 @@ export function Sidebar() {
 
           {/* Navigation */}
           <nav className="flex-1 space-y-1 px-3 py-4">
-            {navItems.map((item) => {
+            {allNavItems.map((item) => {
               const isActive =
                 pathname === item.href ||
                 (item.href !== "/" && pathname.startsWith(item.href));

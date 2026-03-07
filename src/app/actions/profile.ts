@@ -11,7 +11,7 @@ export async function getProfile() {
     const { id } = await requireAuth();
     const user = await prisma.user.findUnique({
         where: { id },
-        select: { id: true, name: true, email: true, timezone: true, createdAt: true },
+        select: { id: true, name: true, email: true, timezone: true, mustChangePassword: true, createdAt: true },
     });
     if (!user) throw new Error("User not found");
     return user;
@@ -44,7 +44,7 @@ export async function changePassword(currentPassword: string, newPassword: strin
     const hashedPassword = await bcrypt.hash(newPassword, 12);
     await prisma.user.update({
         where: { id },
-        data: { password: hashedPassword },
+        data: { password: hashedPassword, mustChangePassword: false },
     });
 
     return { success: true };
