@@ -2,16 +2,11 @@ import { NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-/**
- * POST /api/admin/promote
- * Promotes the currently authenticated user to ADMIN,
- * but only if there are no existing admins in the system.
- */
-export async function POST() {
+async function handlePromote() {
     try {
         const session = await getAuthSession();
         if (!session?.user || !(session.user as { id?: string }).id) {
-            return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+            return NextResponse.json({ error: "No autenticado. Logueate primero." }, { status: 401 });
         }
 
         const userId = (session.user as { id: string }).id;
@@ -37,10 +32,19 @@ export async function POST() {
 
         return NextResponse.json({
             success: true,
-            message: "¡Ahora sos ADMIN! Recargá la página y volvé a loguearte para que el cambio tome efecto.",
+            message: "¡Ahora sos ADMIN! Cerrá sesión y volvé a loguearte para que el cambio tome efecto.",
         });
     } catch (error) {
         console.error("[Promote] Error:", error);
         return NextResponse.json({ error: "Error interno" }, { status: 500 });
     }
+}
+
+// Support both GET (browser URL bar) and POST
+export async function GET() {
+    return handlePromote();
+}
+
+export async function POST() {
+    return handlePromote();
 }

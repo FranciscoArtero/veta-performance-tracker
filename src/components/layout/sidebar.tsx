@@ -16,7 +16,7 @@ import {
   Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Tooltip,
   TooltipContent,
@@ -58,7 +58,13 @@ const navItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+  const [mounted, setMounted] = useState(false);
+
+  // Prevent hydration mismatch: only render session-dependent content after mount
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Hide sidebar on auth pages
   if (pathname.startsWith("/auth")) return null;
@@ -70,7 +76,7 @@ export function Sidebar() {
   // Build nav items dynamically — Admin only visible for ADMIN role
   const allNavItems = [
     ...navItems,
-    ...(userRole === "ADMIN" ? [{ label: "Admin", href: "/admin", icon: Shield }] : []),
+    ...(mounted && userRole === "ADMIN" ? [{ label: "Admin", href: "/admin", icon: Shield }] : []),
   ];
 
   return (
@@ -127,7 +133,7 @@ export function Sidebar() {
                   {!collapsed && (
                     <span className="flex-1 truncate">{item.label}</span>
                   )}
-                  {!collapsed && item.comingSoon && (
+                  {!collapsed && "comingSoon" in item && item.comingSoon && (
                     <span className="rounded-full bg-violet-500/20 px-2 py-0.5 text-[10px] font-medium text-violet-400">
                       Soon
                     </span>
@@ -141,7 +147,7 @@ export function Sidebar() {
                     <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
                     <TooltipContent side="right" className="font-medium">
                       {item.label}
-                      {item.comingSoon && " (Coming Soon)"}
+                      {"comingSoon" in item && item.comingSoon && " (Coming Soon)"}
                     </TooltipContent>
                   </Tooltip>
                 );
@@ -155,7 +161,7 @@ export function Sidebar() {
 
           {/* User info + Logout */}
           <div className="p-3 space-y-2">
-            {!collapsed && session?.user && (
+            {!collapsed && mounted && status === "authenticated" && session?.user && (
               <div className="px-3 py-2">
                 <p className="text-sm font-medium truncate">{userName}</p>
                 <p className="text-[11px] text-muted-foreground truncate">{userEmail}</p>
@@ -207,7 +213,7 @@ export function Sidebar() {
 
       {/* ─── Mobile Bottom Tab Bar ─── */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 flex md:hidden border-t border-border/50 bg-[hsl(var(--sidebar))]/95 backdrop-blur-lg safe-area-bottom">
-        {navItems.map((item) => {
+        {allNavItems.map((item) => {
           const isActive =
             pathname === item.href ||
             (item.href !== "/" && pathname.startsWith(item.href));
