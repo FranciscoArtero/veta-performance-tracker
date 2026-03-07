@@ -12,10 +12,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { createHabit } from "@/app/actions/habits";
+import { Plus, Repeat, CalendarDays, Pin, Target } from "lucide-react";
+import { HABIT_ICONS } from "@/lib/habit-icons";
 
-import { Plus } from "lucide-react";
-
-const ICONS = ["💪", "📖", "🧘", "💧", "🏃", "🎯", "✍️", "💤", "🥗", "🧠", "🎵", "📱"];
 const COLORS = [
     "#8b5cf6", "#06b6d4", "#f97316", "#ec4899",
     "#10b981", "#f59e0b", "#6366f1", "#ef4444",
@@ -36,13 +35,12 @@ type Props = { children: React.ReactNode };
 export function CreateHabitDialog({ children }: Props) {
     const [open, setOpen] = useState(false);
     const [name, setName] = useState("");
-    const [icon, setIcon] = useState("💪");
+    const [icon, setIcon] = useState("dumbbell");
     const [color, setColor] = useState("#8b5cf6");
 
-    // Frequency state
     const [freqType, setFreqType] = useState<"daily" | "weekly">("daily");
     const [weeklyMode, setWeeklyMode] = useState<"fixed" | "flexible">("fixed");
-    const [targetDays, setTargetDays] = useState<number[]>([1, 3, 5]); // L-X-V
+    const [targetDays, setTargetDays] = useState<number[]>([1, 3, 5]);
     const [goalDays, setGoalDays] = useState(3);
 
     const [isPending, startTransition] = useTransition();
@@ -84,7 +82,7 @@ export function CreateHabitDialog({ children }: Props) {
             );
             setOpen(false);
             setName("");
-            setIcon("💪");
+            setIcon("dumbbell");
             setColor("#8b5cf6");
             setFreqType("daily");
             setWeeklyMode("fixed");
@@ -92,6 +90,9 @@ export function CreateHabitDialog({ children }: Props) {
             setGoalDays(3);
         });
     }
+
+    const selectedIcon = HABIT_ICONS.find((i) => i.key === icon);
+    const IconComponent = selectedIcon?.icon ?? Target;
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -123,26 +124,34 @@ export function CreateHabitDialog({ children }: Props) {
                         />
                     </div>
 
-                    {/* Icons + Colors in a compact row */}
+                    {/* Icons + Colors */}
                     <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-2">
                             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                 Ícono
                             </label>
                             <div className="flex flex-wrap gap-1.5">
-                                {ICONS.map((emoji) => (
-                                    <button
-                                        key={emoji}
-                                        type="button"
-                                        onClick={() => setIcon(emoji)}
-                                        className={`flex h-8 w-8 items-center justify-center rounded-lg text-base transition-smooth ${icon === emoji
-                                            ? "bg-violet-500/20 ring-2 ring-violet-500 scale-110"
-                                            : "bg-white/5 hover:bg-white/10"
-                                            }`}
-                                    >
-                                        {emoji}
-                                    </button>
-                                ))}
+                                {HABIT_ICONS.map((item) => {
+                                    const Icon = item.icon;
+                                    const isSelected = icon === item.key;
+                                    return (
+                                        <button
+                                            key={item.key}
+                                            type="button"
+                                            onClick={() => setIcon(item.key)}
+                                            title={item.label}
+                                            className={`flex h-8 w-8 items-center justify-center rounded-lg transition-smooth ${isSelected
+                                                ? "bg-violet-500/20 ring-2 ring-violet-500 scale-110"
+                                                : "bg-white/5 hover:bg-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                                                }`}
+                                        >
+                                            <Icon
+                                                className={`h-4 w-4 ${isSelected ? "text-violet-400" : "text-zinc-500"}`}
+                                                strokeWidth={1.25}
+                                            />
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
                         <div className="space-y-2">
@@ -165,7 +174,7 @@ export function CreateHabitDialog({ children }: Props) {
                         </div>
                     </div>
 
-                    {/* Frequency Type */}
+                    {/* Frequency */}
                     <div className="space-y-2">
                         <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                             Frecuencia
@@ -174,54 +183,56 @@ export function CreateHabitDialog({ children }: Props) {
                             <button
                                 type="button"
                                 onClick={() => setFreqType("daily")}
-                                className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-medium transition-smooth ${freqType === "daily"
+                                className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-smooth ${freqType === "daily"
                                     ? "bg-violet-500 text-white"
                                     : "bg-white/5 text-muted-foreground hover:bg-white/10"
                                     }`}
                             >
-                                🔁 Diario
+                                <Repeat className="h-3.5 w-3.5" strokeWidth={1.5} />
+                                Diario
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setFreqType("weekly")}
-                                className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-medium transition-smooth ${freqType === "weekly"
+                                className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-smooth ${freqType === "weekly"
                                     ? "bg-violet-500 text-white"
                                     : "bg-white/5 text-muted-foreground hover:bg-white/10"
                                     }`}
                             >
-                                📅 Semanal
+                                <CalendarDays className="h-3.5 w-3.5" strokeWidth={1.5} />
+                                Semanal
                             </button>
                         </div>
                     </div>
 
-                    {/* Weekly Sub-Options (only if weekly) */}
+                    {/* Weekly sub-options */}
                     {freqType === "weekly" && (
                         <div className="space-y-3 rounded-lg border border-border/30 bg-white/[0.02] p-3">
-                            {/* Fixed vs Flexible toggle */}
                             <div className="flex gap-2">
                                 <button
                                     type="button"
                                     onClick={() => setWeeklyMode("fixed")}
-                                    className={`flex-1 rounded-lg px-3 py-2 text-xs font-medium transition-smooth ${weeklyMode === "fixed"
+                                    className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-smooth ${weeklyMode === "fixed"
                                         ? "bg-cyan-500/20 text-cyan-300 ring-1 ring-cyan-500/50"
                                         : "bg-white/5 text-muted-foreground hover:bg-white/10"
                                         }`}
                                 >
-                                    📌 Días fijos
+                                    <Pin className="h-3 w-3" strokeWidth={1.5} />
+                                    Días fijos
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setWeeklyMode("flexible")}
-                                    className={`flex-1 rounded-lg px-3 py-2 text-xs font-medium transition-smooth ${weeklyMode === "flexible"
+                                    className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-smooth ${weeklyMode === "flexible"
                                         ? "bg-amber-500/20 text-amber-300 ring-1 ring-amber-500/50"
                                         : "bg-white/5 text-muted-foreground hover:bg-white/10"
                                         }`}
                                 >
-                                    🎯 Flexible
+                                    <Target className="h-3 w-3" strokeWidth={1.5} />
+                                    Flexible
                                 </button>
                             </div>
 
-                            {/* Fixed: Day selector */}
                             {weeklyMode === "fixed" && (
                                 <div className="space-y-1.5">
                                     <p className="text-[11px] text-muted-foreground">
@@ -245,7 +256,6 @@ export function CreateHabitDialog({ children }: Props) {
                                 </div>
                             )}
 
-                            {/* Flexible: Goal slider */}
                             {weeklyMode === "flexible" && (
                                 <div className="space-y-1.5">
                                     <p className="text-[11px] text-muted-foreground">
@@ -273,10 +283,14 @@ export function CreateHabitDialog({ children }: Props) {
                     {/* Preview */}
                     <div className="rounded-lg border border-border/30 bg-white/5 p-3 flex items-center gap-3">
                         <div
-                            className="flex h-10 w-10 items-center justify-center rounded-xl text-xl shrink-0"
+                            className="flex h-10 w-10 items-center justify-center rounded-xl shrink-0"
                             style={{ backgroundColor: `${color}20` }}
                         >
-                            {icon}
+                            <IconComponent
+                                className="h-5 w-5"
+                                style={{ color }}
+                                strokeWidth={1.25}
+                            />
                         </div>
                         <div className="min-w-0">
                             <p className="text-sm font-medium truncate">

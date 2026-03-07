@@ -177,3 +177,70 @@ html {
     scrollbar-width: none;
   }
 }
+
+/* Custom Slider (Mental State) */
+.slider-minimal {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  outline: none;
+  height: 24px;
+  border-radius: 999px;
+  position: relative;
+  z-index: 10;
+  cursor: pointer;
+}
+
+.slider-minimal::-webkit-slider-runnable-track {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.slider-minimal::-moz-range-track {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.slider-minimal::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  margin-top: -9px;
+  background-color: var(--slider-color, #fff);
+  box-shadow: 0 0 10px var(--slider-glow, rgba(255, 255, 255, 0.2));
+  transition: transform 0.1s;
+}
+
+.slider-minimal::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background-color: var(--slider-color, #fff);
+  box-shadow: 0 0 10px var(--slider-glow, rgba(255, 255, 255, 0.2));
+  transition: transform 0.1s;
+}
+
+.slider-minimal:active::-webkit-slider-thumb {
+  transform: scale(1.15);
+}
+
+.slider-minimal:active::-moz-range-thumb {
+  transform: scale(1.15);
+}
+
+.slider-cyan {
+  --slider-color: #06b6d4;
+  --slider-glow: rgba(6, 182, 212, 0.3);
+}
+
+.slider-pink {
+  --slider-color: #ec4899;
+  --slider-glow: rgba(236, 72, 153, 0.3);
+}

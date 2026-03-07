@@ -11,6 +11,7 @@ import { getDayDetail } from "@/app/actions/tasks";
 import { upsertMentalState } from "@/app/actions/mental-state";
 
 import { CheckCircle2 } from "lucide-react";
+import { resolveHabitIcon } from "@/lib/habit-icons";
 
 type DayData = {
     habits: { id: string; name: string; icon: string; color: string; completed: boolean; isBonus?: boolean }[];
@@ -128,7 +129,16 @@ export function DayDetailModal({ open, onClose, dateISO }: Props) {
                                         >
                                             {h.completed && <CheckCircle2 className="h-3 w-3" />}
                                         </div>
-                                        <span className="text-base leading-none">{h.icon}</span>
+                                        {(() => {
+                                            const IconComponent = resolveHabitIcon(h.icon);
+                                            return (
+                                                <IconComponent
+                                                    className={`h-4 w-4 shrink-0 transition-colors ${h.completed ? "text-violet-400" : "text-zinc-500"}`}
+                                                    style={{ color: h.completed ? h.color : undefined }}
+                                                    strokeWidth={1.5}
+                                                />
+                                            );
+                                        })()}
                                         <span
                                             className={`flex-1 text-sm ${h.completed ? "text-muted-foreground line-through" : ""
                                                 }`}

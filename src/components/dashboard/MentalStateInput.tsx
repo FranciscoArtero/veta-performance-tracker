@@ -1,15 +1,11 @@
 "use client";
 
 import { useState, useCallback, useRef, useTransition } from "react";
-import { Slider } from "@/components/ui/slider";
 import { upsertMentalState } from "@/app/actions/mental-state";
-
 
 type Props = {
     initialState: { mood: number; motivation: number } | null;
 };
-
-const moodEmojis = ["", "😞", "😔", "😕", "😐", "🙂", "😊", "😄", "😁", "🤩", "🔥"];
 
 export function MentalStateInput({ initialState }: Props) {
     const [mood, setMood] = useState(initialState?.mood ?? 5);
@@ -17,6 +13,10 @@ export function MentalStateInput({ initialState }: Props) {
     const [saved, setSaved] = useState(false);
     const [isPending, startTransition] = useTransition();
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Track which slider is being dragged
+    const [activeMood, setActiveMood] = useState(false);
+    const [activeMotivation, setActiveMotivation] = useState(false);
 
     const save = useCallback(
         (m: number, mot: number) => {
@@ -36,7 +36,7 @@ export function MentalStateInput({ initialState }: Props) {
     );
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-5">
             <div className="flex items-center justify-between">
                 <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
                     ¿Cómo te sentís hoy?
@@ -51,46 +51,85 @@ export function MentalStateInput({ initialState }: Props) {
                 )}
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-3">
-                    <Slider
-                        label="Mood"
-                        valueDisplay={`${moodEmojis[mood]} ${mood}/10`}
-                        min={1}
-                        max={10}
-                        step={1}
-                        value={mood}
-                        onChange={(e) => {
-                            const v = parseInt(e.target.value);
-                            setMood(v);
-                            save(v, motivation);
-                        }}
-                        className="accent-cyan-500"
-                    />
-                    <div className="flex justify-between text-[10px] text-muted-foreground/50 px-0.5">
-                        <span>😞</span>
-                        <span>🔥</span>
+            <div className="grid gap-5 sm:grid-cols-2">
+                {/* Mood slider */}
+                <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            Mood
+                        </span>
+                    </div>
+                    <div className="relative">
+                        <input
+                            type="range"
+                            min={1}
+                            max={10}
+                            step={1}
+                            value={mood}
+                            onChange={(e) => {
+                                const v = parseInt(e.target.value);
+                                setMood(v);
+                                save(v, motivation);
+                            }}
+                            onPointerDown={() => setActiveMood(true)}
+                            onPointerUp={() => setActiveMood(false)}
+                            onBlur={() => setActiveMood(false)}
+                            className="slider-minimal slider-cyan w-full"
+                        />
+                        {/* Floating indicator */}
+                        <div
+                            className={`absolute -top-7 pointer-events-none transition-opacity duration-150 ${activeMood ? "opacity-100" : "opacity-0"
+                                }`}
+                            style={{ left: `calc(${((mood - 1) / 9) * 100}% - 12px)` }}
+                        >
+                            <span className="flex h-6 min-w-6 items-center justify-center rounded-md bg-cyan-500 text-[11px] font-bold text-white px-1.5">
+                                {mood}
+                            </span>
+                        </div>
+                    </div>
+                    <div className="flex justify-between text-[10px] text-muted-foreground/40 px-0.5">
+                        <span>1</span>
+                        <span>10</span>
                     </div>
                 </div>
 
-                <div className="space-y-3">
-                    <Slider
-                        label="Motivación"
-                        valueDisplay={`${moodEmojis[motivation]} ${motivation}/10`}
-                        min={1}
-                        max={10}
-                        step={1}
-                        value={motivation}
-                        onChange={(e) => {
-                            const v = parseInt(e.target.value);
-                            setMotivation(v);
-                            save(mood, v);
-                        }}
-                        className="accent-pink-500"
-                    />
-                    <div className="flex justify-between text-[10px] text-muted-foreground/50 px-0.5">
-                        <span>😞</span>
-                        <span>🔥</span>
+                {/* Motivation slider */}
+                <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            Motivación
+                        </span>
+                    </div>
+                    <div className="relative">
+                        <input
+                            type="range"
+                            min={1}
+                            max={10}
+                            step={1}
+                            value={motivation}
+                            onChange={(e) => {
+                                const v = parseInt(e.target.value);
+                                setMotivation(v);
+                                save(mood, v);
+                            }}
+                            onPointerDown={() => setActiveMotivation(true)}
+                            onPointerUp={() => setActiveMotivation(false)}
+                            onBlur={() => setActiveMotivation(false)}
+                            className="slider-minimal slider-pink w-full"
+                        />
+                        <div
+                            className={`absolute -top-7 pointer-events-none transition-opacity duration-150 ${activeMotivation ? "opacity-100" : "opacity-0"
+                                }`}
+                            style={{ left: `calc(${((motivation - 1) / 9) * 100}% - 12px)` }}
+                        >
+                            <span className="flex h-6 min-w-6 items-center justify-center rounded-md bg-pink-500 text-[11px] font-bold text-white px-1.5">
+                                {motivation}
+                            </span>
+                        </div>
+                    </div>
+                    <div className="flex justify-between text-[10px] text-muted-foreground/40 px-0.5">
+                        <span>1</span>
+                        <span>10</span>
                     </div>
                 </div>
             </div>

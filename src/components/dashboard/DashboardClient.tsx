@@ -16,6 +16,7 @@ import { createTask, toggleTask, deleteTask } from "@/app/actions/tasks";
 import { MentalStateInput } from "./MentalStateInput";
 import { MonthlyHeatmap } from "./MonthlyHeatmap";
 import { Plus, Trash2, ListTodo } from "lucide-react";
+import { resolveHabitIcon } from "@/lib/habit-icons";
 
 // ─── Animation variants ──────────────────────────────────────
 const fadeIn = {
@@ -374,7 +375,16 @@ export function DashboardClient({
                                                 exit="exit"
                                                 className="group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-smooth hover:bg-white/5"
                                             >
-                                                <span className="text-xl leading-none">{habit.icon}</span>
+                                                {(() => {
+                                                    const IconComponent = resolveHabitIcon(habit.icon);
+                                                    return (
+                                                        <IconComponent
+                                                            className="h-5 w-5 shrink-0 transition-colors"
+                                                            style={{ color: done ? habit.color : undefined }}
+                                                            strokeWidth={1.5}
+                                                        />
+                                                    );
+                                                })()}
                                                 <span className="flex-1 text-sm text-foreground">
                                                     {habit.name}
                                                 </span>
@@ -577,11 +587,11 @@ export function DashboardClient({
                                     {moodData.map((d, i) => (
                                         <div
                                             key={i}
-                                            className="flex-1 flex flex-col items-center gap-1.5"
+                                            className="flex-1 flex flex-col items-center gap-1.5 h-full"
                                         >
-                                            <div className="w-full flex items-end justify-center gap-0.5 flex-1">
+                                            <div className="w-full flex items-end justify-center gap-1 flex-1 relative">
                                                 <motion.div
-                                                    className="w-2.5 rounded-full bg-gradient-to-t from-cyan-600 to-cyan-400"
+                                                    className="w-2.5 rounded-full bg-gradient-to-t from-cyan-600 to-cyan-400 absolute bottom-0 left-[calc(50%-6px)]"
                                                     initial={{ height: 0 }}
                                                     animate={{
                                                         height: d.mood > 0 ? `${Math.max(d.mood * 10, 8)}%` : "0",
@@ -589,7 +599,7 @@ export function DashboardClient({
                                                     transition={{ delay: 0.5 + i * 0.05, duration: 0.6, ease: "easeOut" }}
                                                 />
                                                 <motion.div
-                                                    className="w-2.5 rounded-full bg-gradient-to-t from-pink-600 to-pink-400"
+                                                    className="w-2.5 rounded-full bg-gradient-to-t from-pink-600 to-pink-400 absolute bottom-0 right-[calc(50%-6px)]"
                                                     initial={{ height: 0 }}
                                                     animate={{
                                                         height: d.motivation > 0 ? `${Math.max(d.motivation * 10, 8)}%` : "0",
