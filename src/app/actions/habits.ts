@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { requireAuth } from "@/lib/auth";
 
 // ─────────────────────────────────────
 // Helpers
@@ -31,16 +32,19 @@ function toDateOnly(dateISO: string): Date {
  * For WEEKLY_FIXED: only allows toggle if the day is in targetDays.
  */
 export async function toggleHabitLog(habitId: string, dateISO: string) {
+    const { id: userId } = await requireAuth();
     console.log("[toggleHabitLog] habitId:", habitId, "dateISO:", dateISO);
     const dateOnly = toDateOnly(dateISO);
 
-    // Check if this is a fixed weekly habit — validate day
+    // Check if this is a fixed weekly habit — validate day + ownership
     const habit = await prisma.habit.findUnique({
         where: { id: habitId },
-        select: { frequency: true, targetDays: true },
+        select: { frequency: true, targetDays: true, userId: true },
     });
 
-    if (habit?.frequency === "weekly_fixed" && habit.targetDays.length > 0) {
+    if (!habit || habit.userId !== userId) return;
+
+    if (habit.frequency === "weekly_fixed" && habit.targetDays.length > 0) {
         const dayOfWeek = dateOnly.getUTCDay();
         if (!habit.targetDays.includes(dayOfWeek)) {
             console.log("[toggleHabitLog] Day blocked for fixed habit:", dayOfWeek);
@@ -77,7 +81,16 @@ export async function toggleHabitLog(habitId: string, dateISO: string) {
  * If today already has a log, remove it (untoggle).
  */
 export async function addWeeklySession(habitId: string) {
+    const { id: userId } = await requireAuth();
     console.log("[addWeeklySession] habitId:", habitId);
+
+    // Ownership check
+    const habit = await prisma.habit.findUnique({
+        where: { id: habitId },
+        select: { userId: true },
+    });
+    if (!habit || habit.userId !== userId) return;
+
     const now = new Date();
     const todayOnly = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
 
@@ -105,6 +118,7 @@ export async function addWeeklySession(habitId: string) {
  * Count sessions this week (Mon-Sun) for a flexible habit.
  */
 export async function getWeeklySessionCount(habitId: string): Promise<number> {
+    await requireAuth();
     const weekStart = getWeekStart();
     const weekEnd = new Date(weekStart);
     weekEnd.setUTCDate(weekEnd.getUTCDate() + 7);
@@ -124,15 +138,11 @@ export async function getWeeklySessionCount(habitId: string): Promise<number> {
 // ─────────────────────────────────────
 
 /**
- * Get all habits for a user with logs from the last 7 days.
+ * Get all habits for the authenticated user with logs from the last 7 days.
  */
-export async function getHabitsWithLogs(userId: string) {
+export async function getHabitsWithLogs() {
+    const { id: userId } = await requireAuth();
     console.log("[getHabitsWithLogs] userId:", userId);
-    await prisma.user.upsert({
-        where: { id: userId },
-        update: {},
-        create: { id: userId, email: "temp@example.com", name: "Temp User" },
-    });
 
     const now = new Date();
     const sevenDaysAgo = new Date(now);
@@ -174,12 +184,8 @@ export async function getHabitsWithLogs(userId: string) {
 /**
  * Get all habits with logs for the weekly view (last 7 days).
  */
-export async function getHabitsWithWeeklyLogs(userId: string) {
-    await prisma.user.upsert({
-        where: { id: userId },
-        update: {},
-        create: { id: userId, email: "temp@example.com", name: "Temp User" },
-    });
+export async function getHabitsWithWeeklyLogs() {
+    const { id: userId } = await requireAuth();
 
     const now = new Date();
     const fortyNineDaysAgo = new Date(now);
@@ -221,7 +227,8 @@ export async function getHabitsWithWeeklyLogs(userId: string) {
  * Get logs for the current month for the heatmap.
  * Ratio uses weighted scoring: 70% habits + 30% tasks.
  */
-export async function getMonthlyLogs(userId: string) {
+export async function getMonthlyLogs() {
+    const { id: userId } = await requireAuth();
     const now = new Date();
     const startOfMonth = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1));
     const endOfMonth = new Date(Date.UTC(now.getFullYear(), now.getMonth() + 1, 0));
@@ -294,10 +301,9 @@ export async function getMonthlyLogs(userId: string) {
 // ─────────────────────────────────────
 
 /**
- * Create a new habit for a user.
+ * Create a new habit for the authenticated user.
  */
 export async function createHabit(
-    userId: string,
     name: string,
     icon: string,
     color: string,
@@ -306,14 +312,9 @@ export async function createHabit(
     goalDays?: number | null,
     targetDays?: number[]
 ) {
+    const { id: userId } = await requireAuth();
     console.log("[createHabit] userId:", userId, "name:", name, "frequency:", frequency,
         "weeklyMode:", weeklyMode, "goalDays:", goalDays, "targetDays:", targetDays);
-
-    await prisma.user.upsert({
-        where: { id: userId },
-        update: {},
-        create: { id: userId, email: "temp@example.com", name: "Temp User" },
-    });
 
     const lastHabit = await prisma.habit.findFirst({
         where: { userId },
@@ -345,7 +346,13 @@ export async function createHabit(
  * Delete a habit and all its logs.
  */
 export async function deleteHabit(habitId: string) {
+    const { id: userId } = await requireAuth();
     console.log("[deleteHabit] habitId:", habitId);
+
+    // Ownership check
+    const habit = await prisma.habit.findUnique({ where: { id: habitId } });
+    if (!habit || habit.userId !== userId) return;
+
     await prisma.habit.delete({ where: { id: habitId } });
     revalidatePath("/");
     revalidatePath("/habits");
@@ -367,7 +374,13 @@ export async function updateHabit(
         isActive?: boolean;
     }
 ) {
+    const { id: userId } = await requireAuth();
     console.log("[updateHabit] habitId:", habitId, "data:", data);
+
+    // Ownership check
+    const habit = await prisma.habit.findUnique({ where: { id: habitId } });
+    if (!habit || habit.userId !== userId) return;
+
     await prisma.habit.update({ where: { id: habitId }, data });
     revalidatePath("/");
     revalidatePath("/habits");

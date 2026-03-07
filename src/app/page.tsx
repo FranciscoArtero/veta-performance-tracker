@@ -1,6 +1,5 @@
 export const dynamic = 'force-dynamic';
 
-import { TEMP_USER_ID } from "@/lib/constants";
 import {
   getHabitsWithLogs,
   getMonthlyLogs,
@@ -16,11 +15,11 @@ import { DashboardClient } from "@/components/dashboard/DashboardClient";
 export default async function DashboardPage() {
   try {
     const [habits, moodData, monthlyData, todayMood, tasks] = await Promise.all([
-      getHabitsWithLogs(TEMP_USER_ID),
-      getMentalStateWeek(TEMP_USER_ID),
-      getMonthlyLogs(TEMP_USER_ID),
-      getTodayMentalState(TEMP_USER_ID),
-      getTodayTasks(TEMP_USER_ID),
+      getHabitsWithLogs(),
+      getMentalStateWeek(),
+      getMonthlyLogs(),
+      getTodayMentalState(),
+      getTodayTasks(),
     ]);
 
     // Compute streaks for each habit

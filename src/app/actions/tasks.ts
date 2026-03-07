@@ -2,11 +2,13 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { requireAuth } from "@/lib/auth";
 
 /**
  * Get tasks for a specific date.
  */
-export async function getTasksForDate(userId: string, dateISO: string) {
+export async function getTasksForDate(dateISO: string) {
+    const { id: userId } = await requireAuth();
     const d = new Date(dateISO);
     const dateOnly = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
 
@@ -21,16 +23,10 @@ export async function getTasksForDate(userId: string, dateISO: string) {
 /**
  * Get today's tasks.
  */
-export async function getTodayTasks(userId: string) {
+export async function getTodayTasks() {
+    const { id: userId } = await requireAuth();
     const now = new Date();
     const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
-
-    // Ensure user exists
-    await prisma.user.upsert({
-        where: { id: userId },
-        update: {},
-        create: { id: userId, email: "temp@example.com", name: "Temp User" },
-    });
 
     const tasks = await prisma.task.findMany({
         where: { userId, date: today },
@@ -43,7 +39,8 @@ export async function getTodayTasks(userId: string) {
 /**
  * Create a new task for today.
  */
-export async function createTask(userId: string, title: string, dateISO?: string) {
+export async function createTask(title: string, dateISO?: string) {
+    const { id: userId } = await requireAuth();
     console.log("[createTask] userId:", userId, "title:", title);
 
     const d = dateISO ? new Date(dateISO) : new Date();
@@ -66,10 +63,11 @@ export async function createTask(userId: string, title: string, dateISO?: string
  * Toggle a task's completed status.
  */
 export async function toggleTask(taskId: string) {
+    const { id: userId } = await requireAuth();
     console.log("[toggleTask] taskId:", taskId);
 
     const task = await prisma.task.findUnique({ where: { id: taskId } });
-    if (!task) return;
+    if (!task || task.userId !== userId) return;
 
     await prisma.task.update({
         where: { id: taskId },
@@ -83,7 +81,12 @@ export async function toggleTask(taskId: string) {
  * Delete a task.
  */
 export async function deleteTask(taskId: string) {
+    const { id: userId } = await requireAuth();
     console.log("[deleteTask] taskId:", taskId);
+
+    const task = await prisma.task.findUnique({ where: { id: taskId } });
+    if (!task || task.userId !== userId) return;
+
     await prisma.task.delete({ where: { id: taskId } });
     revalidatePath("/");
 }
@@ -91,7 +94,8 @@ export async function deleteTask(taskId: string) {
 /**
  * Get day detail: habits, mood, tasks for a specific date.
  */
-export async function getDayDetail(userId: string, dateISO: string) {
+export async function getDayDetail(dateISO: string) {
+    const { id: userId } = await requireAuth();
     const d = new Date(dateISO);
     const dateOnly = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
 

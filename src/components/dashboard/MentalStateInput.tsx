@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useTransition } from "react";
 import { Slider } from "@/components/ui/slider";
 import { upsertMentalState } from "@/app/actions/mental-state";
-import { TEMP_USER_ID } from "@/lib/constants";
+
 
 type Props = {
     initialState: { mood: number; motivation: number } | null;
@@ -26,7 +26,7 @@ export function MentalStateInput({ initialState }: Props) {
                 const today = new Date();
                 const todayISO = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
                 startTransition(async () => {
-                    await upsertMentalState(TEMP_USER_ID, todayISO, m, mot);
+                    await upsertMentalState(todayISO, m, mot);
                     setSaved(true);
                     setTimeout(() => setSaved(false), 2000);
                 });

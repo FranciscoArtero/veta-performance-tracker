@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { createHabit } from "@/app/actions/habits";
-import { TEMP_USER_ID } from "@/lib/constants";
+
 import { Plus } from "lucide-react";
 
 const ICONS = ["💪", "📖", "🧘", "💧", "🏃", "🎯", "✍️", "💤", "🥗", "🧠", "🎵", "📱"];
@@ -74,7 +74,6 @@ export function CreateHabitDialog({ children }: Props) {
         const freq = getFrequencyValue();
         startTransition(async () => {
             await createHabit(
-                TEMP_USER_ID,
                 name.trim(),
                 icon,
                 color,

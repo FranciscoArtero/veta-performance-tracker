@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { getDayDetail } from "@/app/actions/tasks";
 import { upsertMentalState } from "@/app/actions/mental-state";
-import { TEMP_USER_ID } from "@/lib/constants";
+
 import { CheckCircle2 } from "lucide-react";
 
 type DayData = {
@@ -38,7 +38,7 @@ export function DayDetailModal({ open, onClose, dateISO }: Props) {
         setLoading(true);
         setData(null);
         try {
-            const result = await getDayDetail(TEMP_USER_ID, dateISO);
+            const result = await getDayDetail(dateISO);
             setData(result);
             setNotes(result.mentalState?.notes ?? "");
         } catch (e) {
@@ -61,7 +61,6 @@ export function DayDetailModal({ open, onClose, dateISO }: Props) {
         if (!dateISO) return;
         startTransition(async () => {
             await upsertMentalState(
-                TEMP_USER_ID,
                 dateISO,
                 data?.mentalState?.mood ?? 5,
                 data?.mentalState?.motivation ?? 5,

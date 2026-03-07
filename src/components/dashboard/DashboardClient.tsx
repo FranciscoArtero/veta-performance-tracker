@@ -16,7 +16,7 @@ import { createTask, toggleTask, deleteTask } from "@/app/actions/tasks";
 import { MentalStateInput } from "./MentalStateInput";
 import { MonthlyHeatmap } from "./MonthlyHeatmap";
 import { Plus, Trash2, ListTodo } from "lucide-react";
-import { TEMP_USER_ID } from "@/lib/constants";
+
 
 type HabitWithLogs = {
     id: string;
@@ -388,7 +388,7 @@ export function DashboardClient({
                                 const tempTask = { id: `temp-${Date.now()}`, title: newTaskTitle.trim(), completed: false };
                                 startTransition(async () => {
                                     setOptimisticTasks({ type: "add", task: tempTask });
-                                    await createTask(TEMP_USER_ID, newTaskTitle.trim());
+                                    await createTask(newTaskTitle.trim());
                                 });
                                 setNewTaskTitle("");
                             }}

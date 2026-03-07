@@ -2,15 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 import {
   LayoutDashboard,
   Target,
   Wallet,
   Dumbbell,
-  Settings,
   Zap,
   ChevronLeft,
   ChevronRight,
+  LogOut,
+  User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -46,15 +48,22 @@ const navItems = [
     comingSoon: true,
   },
   {
-    label: "Config",
-    href: "/settings",
-    icon: Settings,
+    label: "Perfil",
+    href: "/profile",
+    icon: User,
   },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const { data: session } = useSession();
+
+  // Hide sidebar on auth pages
+  if (pathname.startsWith("/auth")) return null;
+
+  const userName = session?.user?.name || "Usuario";
+  const userEmail = session?.user?.email || "";
 
   return (
     <>
@@ -136,8 +145,41 @@ export function Sidebar() {
 
           <Separator className="opacity-50" />
 
-          {/* Collapse Toggle */}
-          <div className="p-3">
+          {/* User info + Logout */}
+          <div className="p-3 space-y-2">
+            {!collapsed && session?.user && (
+              <div className="px-3 py-2">
+                <p className="text-sm font-medium truncate">{userName}</p>
+                <p className="text-[11px] text-muted-foreground truncate">{userEmail}</p>
+              </div>
+            )}
+
+            {collapsed ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => signOut({ callbackUrl: "/auth/login" })}
+                    aria-label="Cerrar sesión"
+                    className="flex w-full items-center justify-center gap-2 rounded-lg px-2 py-2 text-sm text-muted-foreground transition-smooth hover:bg-red-500/10 hover:text-red-400"
+                  >
+                    <LogOut className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="font-medium">
+                  Cerrar sesión
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <button
+                onClick={() => signOut({ callbackUrl: "/auth/login" })}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-smooth hover:bg-red-500/10 hover:text-red-400"
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Cerrar sesión</span>
+              </button>
+            )}
+
+            {/* Collapse Toggle */}
             <button
               onClick={() => setCollapsed(!collapsed)}
               className="flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-smooth hover:bg-white/5 hover:text-white"

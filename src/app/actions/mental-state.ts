@@ -2,17 +2,18 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { requireAuth } from "@/lib/auth";
 
 /**
  * Upsert mood and motivation for a given day, with optional notes.
  */
 export async function upsertMentalState(
-    userId: string,
     dateISO: string,
     mood: number,
     motivation: number,
     notes?: string | null
 ) {
+    const { id: userId } = await requireAuth();
     console.log("[upsertMentalState] userId:", userId, "date:", dateISO, "mood:", mood, "motivation:", motivation, "notes:", notes);
     const date = new Date(dateISO);
     const dateOnly = new Date(
@@ -45,7 +46,8 @@ export async function upsertMentalState(
 /**
  * Get the last 7 days of mental state data.
  */
-export async function getMentalStateWeek(userId: string) {
+export async function getMentalStateWeek() {
+    const { id: userId } = await requireAuth();
     const now = new Date();
     const sevenDaysAgo = new Date(now);
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
@@ -92,7 +94,8 @@ export async function getMentalStateWeek(userId: string) {
 /**
  * Get today's mental state for the sliders.
  */
-export async function getTodayMentalState(userId: string) {
+export async function getTodayMentalState() {
+    const { id: userId } = await requireAuth();
     const now = new Date();
     const today = new Date(
         Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())

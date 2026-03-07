@@ -1,7 +1,5 @@
 export const dynamic = 'force-dynamic';
 
-
-import { TEMP_USER_ID } from "@/lib/constants";
 import {
     getHabitsWithWeeklyLogs,
 } from "@/app/actions/habits";
@@ -11,7 +9,7 @@ import { HabitsPageClient, AddHabitCard } from "@/components/habits/HabitsPageCl
 
 export default async function HabitsPage() {
     try {
-        const habits = await getHabitsWithWeeklyLogs(TEMP_USER_ID);
+        const habits = await getHabitsWithWeeklyLogs();
 
         // Compute streaks
         const streaks: Record<string, number> = {};
@@ -80,4 +78,3 @@ export default async function HabitsPage() {
         );
     }
 }
-
