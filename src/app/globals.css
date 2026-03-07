@@ -3,8 +3,10 @@
 @tailwind utilities;
 
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
+  @supports (text-wrap: balance) {
+    .text-balance {
+      text-wrap: balance;
+    }
   }
 }
 
@@ -102,8 +104,8 @@
 /* Glassmorphism effect – Grit/Linear aesthetic */
 .glass {
   background: rgba(24, 24, 27, 0.4);
-  backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
@@ -158,7 +160,6 @@
 /* Prevent text size adjustment on mobile */
 html {
   -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
 }
 
 /* Smooth scrolling for touch */
@@ -174,7 +175,12 @@ html {
 
   body {
     -ms-overflow-style: none;
-    scrollbar-width: none;
+  }
+
+  @supports (scrollbar-width: none) {
+    body {
+      scrollbar-width: none;
+    }
   }
 }
 

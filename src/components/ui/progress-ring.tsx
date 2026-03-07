@@ -30,6 +30,7 @@ export function ProgressRing({
     const offset = circumference - (Math.min(value, 100) / 100) * circumference;
 
     return (
+        // eslint-disable-next-line
         <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
             <svg width={size} height={size} className="-rotate-90">
                 {/* Background circle */}

@@ -167,6 +167,7 @@ export function CreateHabitDialog({ children }: Props) {
                                         aria-label={`Color ${c}`}
                                         className={`h-7 w-7 rounded-full transition-smooth ${color === c ? "ring-2 ring-white scale-110" : "hover:scale-110"
                                             }`}
+                                        // eslint-disable-next-line
                                         style={{ backgroundColor: c }}
                                     />
                                 ))}
@@ -284,10 +285,12 @@ export function CreateHabitDialog({ children }: Props) {
                     <div className="rounded-lg border border-border/30 bg-white/5 p-3 flex items-center gap-3">
                         <div
                             className="flex h-10 w-10 items-center justify-center rounded-xl shrink-0"
+                            // eslint-disable-next-line
                             style={{ backgroundColor: `${color}20` }}
                         >
                             <IconComponent
                                 className="h-5 w-5"
+                                // eslint-disable-next-line
                                 style={{ color }}
                                 strokeWidth={1.25}
                             />

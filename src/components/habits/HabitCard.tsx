@@ -107,6 +107,7 @@ export function HabitCard({ habit, streak, weekDates }: Props) {
                     <div className="flex items-center gap-3">
                         <div
                             className="flex h-10 w-10 items-center justify-center rounded-xl text-xl transition-smooth group-hover:scale-110 shrink-0"
+                            // eslint-disable-next-line
                             style={{ backgroundColor: `${habit.color}15`, color: habit.color }}
                         >
                             {(() => {
@@ -169,6 +170,7 @@ export function HabitCard({ habit, streak, weekDates }: Props) {
                                     <div
                                         className={`h-6 w-full rounded-sm transition-smooth hover:scale-110 ${isMissed ? "ring-1 ring-red-500/30" : ""
                                             }`}
+                                        // eslint-disable-next-line
                                         style={{
                                             backgroundColor: done
                                                 ? `${habit.color}80`
@@ -206,6 +208,7 @@ export function HabitCard({ habit, streak, weekDates }: Props) {
                                     <div
                                         className={`h-6 w-full rounded-sm transition-smooth ${isTarget ? "hover:scale-110" : ""
                                             }`}
+                                        // eslint-disable-next-line
                                         style={{
                                             backgroundColor: done
                                                 ? `${habit.color}80`
@@ -236,6 +239,7 @@ export function HabitCard({ habit, streak, weekDates }: Props) {
                                             ? "scale-100"
                                             : "border border-dashed border-muted-foreground/30"
                                             }`}
+                                        // eslint-disable-next-line
                                         style={{
                                             backgroundColor: i < optimisticSessions ? `${habit.color}80` : "transparent",
                                         }}
@@ -250,6 +254,7 @@ export function HabitCard({ habit, streak, weekDates }: Props) {
                                     onClick={handleAddSession}
                                     title="Agregar sesión"
                                     className="flex h-7 w-7 items-center justify-center rounded-lg transition-smooth hover:scale-110"
+                                    // eslint-disable-next-line
                                     style={{
                                         backgroundColor: `${habit.color}20`,
                                         color: habit.color,

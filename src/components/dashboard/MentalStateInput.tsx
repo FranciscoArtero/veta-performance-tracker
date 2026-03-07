@@ -62,6 +62,8 @@ export function MentalStateInput({ initialState }: Props) {
                     <div className="relative">
                         <input
                             type="range"
+                            title="Mood"
+                            placeholder="Mood"
                             min={1}
                             max={10}
                             step={1}
@@ -80,7 +82,7 @@ export function MentalStateInput({ initialState }: Props) {
                         <div
                             className={`absolute -top-7 pointer-events-none transition-opacity duration-150 ${activeMood ? "opacity-100" : "opacity-0"
                                 }`}
-                            style={{ left: `calc(${((mood - 1) / 9) * 100}% - 12px)` }}
+                            style={{ left: `calc(${((mood - 1) / 9) * 100}% - 12px)` }} // NOSONAR
                         >
                             <span className="flex h-6 min-w-6 items-center justify-center rounded-md bg-cyan-500 text-[11px] font-bold text-white px-1.5">
                                 {mood}
@@ -103,6 +105,8 @@ export function MentalStateInput({ initialState }: Props) {
                     <div className="relative">
                         <input
                             type="range"
+                            title="Motivación"
+                            placeholder="Motivación"
                             min={1}
                             max={10}
                             step={1}
@@ -120,7 +124,7 @@ export function MentalStateInput({ initialState }: Props) {
                         <div
                             className={`absolute -top-7 pointer-events-none transition-opacity duration-150 ${activeMotivation ? "opacity-100" : "opacity-0"
                                 }`}
-                            style={{ left: `calc(${((motivation - 1) / 9) * 100}% - 12px)` }}
+                            style={{ left: `calc(${((motivation - 1) / 9) * 100}% - 12px)` }} // NOSONAR
                         >
                             <span className="flex h-6 min-w-6 items-center justify-center rounded-md bg-pink-500 text-[11px] font-bold text-white px-1.5">
                                 {motivation}

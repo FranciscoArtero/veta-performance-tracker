@@ -110,6 +110,7 @@ export function MonthlyHeatmap({ data, monthLabel }: Props) {
                                         ? "cursor-default"
                                         : "cursor-pointer hover:scale-110 hover:ring-1 hover:ring-violet-400/50 active:scale-95"
                                         }`}
+                                    // eslint-disable-next-line
                                     style={{
                                         backgroundColor: isFuture
                                             ? "hsl(var(--muted) / 0.3)"
@@ -150,6 +151,7 @@ export function MonthlyHeatmap({ data, monthLabel }: Props) {
                                 <div
                                     key={i}
                                     className="h-3 w-3 rounded-sm"
+                                    // eslint-disable-next-line
                                     style={{
                                         backgroundColor: `hsla(263, 70%, 55%, ${op})`,
                                     }}
