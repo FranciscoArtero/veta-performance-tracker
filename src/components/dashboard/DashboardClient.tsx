@@ -155,16 +155,37 @@ export function DashboardClient({
         );
     });
 
-    const completedToday = Object.values(optimisticToday).filter(Boolean).length;
-    const totalToday = habits.length;
+    const todayDow = new Date().getDay();
+
+    // ─── Classify habits ───────────────────────────────────
+    // "Required today" = DAILY + WEEKLY_FIXED on target day
+    const requiredHabits = habits.filter((h) => {
+        if (h.frequency === "weekly_flexible") return false;
+        if (h.frequency === "weekly_fixed") {
+            return (h.targetDays ?? []).includes(todayDow);
+        }
+        return true; // daily
+    });
+
+    // WEEKLY_FLEXIBLE habits shown separately as bonus
+    // (they don't have a separate array — rendered inline with a "Bonus" badge)
+
+    // Completed counts (only required habits count toward %)
+    const completedRequired = requiredHabits.filter((h) => optimisticToday[h.id]).length;
+    const totalRequired = requiredHabits.length;
+
     const completedTasksToday = optimisticTasks.filter((t) => t.completed).length;
     const totalTasksToday = optimisticTasks.length;
 
-    const habitScore = totalToday > 0 ? completedToday / totalToday : 0;
+    // ─── Efficiency % ──────────────────────────────────────
+    // Denominator = required habits + tasks. Flexible habits are bonus (don't subtract).
+    const habitScore = totalRequired > 0 ? completedRequired / totalRequired : 1;
     const taskScore = totalTasksToday > 0 ? completedTasksToday / totalTasksToday : 0;
-    const progressPercent = totalTasksToday > 0
-        ? Math.round((habitScore * 0.7 + taskScore * 0.3) * 100)
-        : Math.round(habitScore * 100);
+    const progressPercent = totalRequired > 0 || totalTasksToday > 0
+        ? (totalTasksToday > 0
+            ? Math.round((habitScore * 0.7 + taskScore * 0.3) * 100)
+            : Math.round(habitScore * 100))
+        : 100;
 
     const moodValues = moodData.filter((d) => d.mood > 0);
     const avgMood =
@@ -225,7 +246,7 @@ export function DashboardClient({
                                         Hoy
                                     </p>
                                     <p className="text-2xl font-bold">
-                                        {completedToday}/{totalToday}
+                                        {completedRequired}/{totalRequired}
                                     </p>
                                 </div>
                                 <ProgressRing
@@ -337,8 +358,10 @@ export function DashboardClient({
                                     const done = optimisticToday[habit.id];
                                     const isFlexible = habit.frequency === "weekly_flexible";
                                     const isFixed = habit.frequency === "weekly_fixed";
-                                    const todayDow = new Date().getDay();
                                     const isTargetDay = isFixed ? (habit.targetDays ?? []).includes(todayDow) : true;
+
+                                    // Hide WEEKLY_FIXED habits that are NOT for today
+                                    if (isFixed && !isTargetDay) return null;
 
                                     if (isFlexible) {
                                         return (
@@ -355,6 +378,9 @@ export function DashboardClient({
                                                 <span className="flex-1 text-sm text-foreground">
                                                     {habit.name}
                                                 </span>
+                                                <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-medium text-amber-400">
+                                                    Bonus
+                                                </span>
                                                 <span className="text-xs text-muted-foreground font-medium">
                                                     {habit.weekSessions ?? 0}/{habit.goalDays ?? 3}
                                                 </span>
@@ -370,27 +396,7 @@ export function DashboardClient({
                                         );
                                     }
 
-                                    if (isFixed && !isTargetDay) {
-                                        return (
-                                            <motion.div
-                                                key={habit.id}
-                                                layout
-                                                variants={listItem}
-                                                initial="hidden"
-                                                animate="visible"
-                                                className="flex items-center gap-3 rounded-lg px-3 py-2.5 opacity-40"
-                                            >
-                                                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-white/10" />
-                                                <span className="text-xl leading-none">{habit.icon}</span>
-                                                <span className="flex-1 text-sm text-muted-foreground">
-                                                    {habit.name}
-                                                </span>
-                                                <span className="text-[10px] text-muted-foreground/60">
-                                                    No es día
-                                                </span>
-                                            </motion.div>
-                                        );
-                                    }
+                                    // (non-target WEEKLY_FIXED already filtered above)
 
                                     return (
                                         <motion.div

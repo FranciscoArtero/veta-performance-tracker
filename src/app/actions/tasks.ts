@@ -93,14 +93,16 @@ export async function deleteTask(taskId: string) {
 
 /**
  * Get day detail: habits, mood, tasks for a specific date.
+ * Uses dynamic denominator: DAILY + WEEKLY_FIXED (on target day) = required.
+ * WEEKLY_FLEXIBLE = bonus (doesn't penalise score).
  */
 export async function getDayDetail(dateISO: string) {
     const { id: userId } = await requireAuth();
     const d = new Date(dateISO);
     const dateOnly = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    const dayOfWeek = new Date(dateISO + "T12:00:00").getDay(); // 0=Sun ... 6=Sat
 
     const [habits, mentalState, tasks] = await Promise.all([
-        // Get all active habits with logs for this specific date
         prisma.habit.findMany({
             where: { userId, isActive: true },
             include: {
@@ -110,36 +112,54 @@ export async function getDayDetail(dateISO: string) {
             },
             orderBy: { order: "asc" },
         }),
-        // Get mental state for this date
         prisma.mentalState.findUnique({
             where: { userId_date: { userId, date: dateOnly } },
         }),
-        // Get tasks for this date
         prisma.task.findMany({
             where: { userId, date: dateOnly },
             orderBy: { createdAt: "asc" },
         }),
     ]);
 
-    const completedHabits = habits.filter((h) => h.logs.length > 0 && h.logs[0].completed).length;
+    // Classify habits for this specific day
+    const requiredHabits = habits.filter((h) => {
+        if (h.frequency === "weekly_flexible") return false;
+        if (h.frequency === "weekly_fixed") {
+            return (h.targetDays ?? []).includes(dayOfWeek);
+        }
+        return true; // daily
+    });
+
+    const completedRequired = requiredHabits.filter((h) => h.logs.length > 0 && h.logs[0].completed).length;
     const completedTasks = tasks.filter((t) => t.completed).length;
     const totalTasks = tasks.length;
-    const totalHabits = habits.length;
+    const totalRequired = requiredHabits.length;
 
-    // Weighted score: 70% habits + 30% tasks
-    const habitScore = totalHabits > 0 ? completedHabits / totalHabits : 0;
+    // Weighted score: 70% required habits + 30% tasks
+    const habitScore = totalRequired > 0 ? completedRequired / totalRequired : 1;
     const taskScore = totalTasks > 0 ? completedTasks / totalTasks : 0;
-    const weightedScore = totalTasks > 0
-        ? Math.round((habitScore * 0.7 + taskScore * 0.3) * 100)
-        : Math.round(habitScore * 100);
+    const weightedScore = totalRequired > 0 || totalTasks > 0
+        ? (totalTasks > 0
+            ? Math.round((habitScore * 0.7 + taskScore * 0.3) * 100)
+            : Math.round(habitScore * 100))
+        : 100;
+
+    // Only show habits relevant to this day (required + flexible as bonus)
+    const visibleHabits = habits.filter((h) => {
+        if (h.frequency === "weekly_fixed") {
+            return (h.targetDays ?? []).includes(dayOfWeek);
+        }
+        return true;
+    });
 
     return {
-        habits: habits.map((h) => ({
+        habits: visibleHabits.map((h) => ({
             id: h.id,
             name: h.name,
             icon: h.icon,
             color: h.color,
             completed: h.logs.length > 0 && h.logs[0].completed,
+            isBonus: h.frequency === "weekly_flexible",
         })),
         mentalState: mentalState
             ? { mood: mentalState.mood, motivation: mentalState.motivation, notes: mentalState.notes }
@@ -150,6 +170,6 @@ export async function getDayDetail(dateISO: string) {
             completed: t.completed,
         })),
         score: weightedScore,
-        stats: { completedHabits, totalHabits, completedTasks, totalTasks },
+        stats: { completedHabits: completedRequired, totalHabits: totalRequired, completedTasks, totalTasks },
     };
 }

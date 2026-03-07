@@ -13,7 +13,7 @@ import { upsertMentalState } from "@/app/actions/mental-state";
 import { CheckCircle2 } from "lucide-react";
 
 type DayData = {
-    habits: { id: string; name: string; icon: string; color: string; completed: boolean }[];
+    habits: { id: string; name: string; icon: string; color: string; completed: boolean; isBonus?: boolean }[];
     mentalState: { mood: number; motivation: number; notes: string | null } | null;
     tasks: { id: string; title: string; completed: boolean }[];
     score: number;
@@ -135,6 +135,11 @@ export function DayDetailModal({ open, onClose, dateISO }: Props) {
                                         >
                                             {h.name}
                                         </span>
+                                        {h.isBonus && (
+                                            <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-medium text-amber-400">
+                                                Bonus
+                                            </span>
+                                        )}
                                     </div>
                                 ))
                             )}

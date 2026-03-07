@@ -225,7 +225,9 @@ export async function getHabitsWithWeeklyLogs() {
 
 /**
  * Get logs for the current month for the heatmap.
- * Ratio uses weighted scoring: 70% habits + 30% tasks.
+ * Dynamic denominator per day: DAILY + WEEKLY_FIXED (on target day) = required.
+ * WEEKLY_FLEXIBLE excluded from denominator (bonus only).
+ * Ratio uses weighted scoring: 70% required habits + 30% tasks.
  */
 export async function getMonthlyLogs() {
     const { id: userId } = await requireAuth();
@@ -235,10 +237,8 @@ export async function getMonthlyLogs() {
 
     const habits = await prisma.habit.findMany({
         where: { userId, isActive: true },
-        select: { id: true },
+        select: { id: true, frequency: true, targetDays: true },
     });
-
-    const totalHabits = habits.length || 1;
 
     const [logs, tasks] = await Promise.all([
         prisma.habitLog.findMany({
@@ -259,15 +259,15 @@ export async function getMonthlyLogs() {
 
     const daysInMonth = endOfMonth.getUTCDate();
 
-    // Count habit completions per day
-    const habitMap: Record<number, number> = {};
-    for (let d = 1; d <= daysInMonth; d++) habitMap[d] = 0;
+    // Build per-day habit completion map
+    const habitCompletionMap: Record<number, Set<string>> = {};
+    for (let d = 1; d <= daysInMonth; d++) habitCompletionMap[d] = new Set();
     for (const log of logs) {
         const day = new Date(log.date).getUTCDate();
-        habitMap[day] = (habitMap[day] || 0) + 1;
+        habitCompletionMap[day].add(log.habitId);
     }
 
-    // Count tasks per day (total + completed)
+    // Count tasks per day
     const taskTotalMap: Record<number, number> = {};
     const taskDoneMap: Record<number, number> = {};
     for (const t of tasks) {
@@ -278,17 +278,40 @@ export async function getMonthlyLogs() {
 
     const result: { day: number; ratio: number }[] = [];
     const todayDay = now.getDate();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+
     for (let d = 1; d <= daysInMonth; d++) {
         if (d > todayDay) {
             result.push({ day: d, ratio: -1 });
         } else {
-            const habitScore = habitMap[d] / totalHabits;
+            // Get day of week for this specific day
+            const dow = new Date(year, month, d).getDay();
+
+            // Count required habits for this day
+            const requiredHabitIds = habits.filter((h) => {
+                if (h.frequency === "weekly_flexible") return false;
+                if (h.frequency === "weekly_fixed") {
+                    return (h.targetDays ?? []).includes(dow);
+                }
+                return true; // daily
+            }).map((h) => h.id);
+
+            const totalRequired = requiredHabitIds.length;
+            const completedRequired = requiredHabitIds.filter((id) => habitCompletionMap[d].has(id)).length;
+
+            const habitScore = totalRequired > 0 ? completedRequired / totalRequired : 1;
             const dayTasks = taskTotalMap[d] || 0;
-            if (dayTasks > 0) {
-                const taskScore = (taskDoneMap[d] || 0) / dayTasks;
-                result.push({ day: d, ratio: habitScore * 0.7 + taskScore * 0.3 });
+
+            if (totalRequired > 0 || dayTasks > 0) {
+                if (dayTasks > 0) {
+                    const taskScore = (taskDoneMap[d] || 0) / dayTasks;
+                    result.push({ day: d, ratio: habitScore * 0.7 + taskScore * 0.3 });
+                } else {
+                    result.push({ day: d, ratio: habitScore });
+                }
             } else {
-                result.push({ day: d, ratio: habitScore });
+                result.push({ day: d, ratio: 1 }); // no obligations = 100%
             }
         }
     }
