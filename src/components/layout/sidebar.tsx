@@ -61,13 +61,16 @@ export function Sidebar() {
   const { data: session, status } = useSession();
   const [mounted, setMounted] = useState(false);
 
-  // Prevent hydration mismatch: only render session-dependent content after mount
+  // Prevent hydration mismatch: render nothing on the server
   useEffect(() => {
     setMounted(true);
   }, []);
 
   // Hide sidebar on auth pages
   if (pathname.startsWith("/auth")) return null;
+
+  // Don't render anything during SSR to prevent hydration mismatch
+  if (!mounted) return null;
 
   const userName = session?.user?.name || "Usuario";
   const userEmail = session?.user?.email || "";
