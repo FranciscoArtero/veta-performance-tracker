@@ -223,7 +223,7 @@ export function DashboardClient({
                 className="space-y-1"
             >
                 <h1 className="text-xl md:text-2xl font-bold tracking-tight lg:text-3xl">
-                    {greeting || "\u00A0"} 👋
+                    {greeting || "\u00A0"}
                 </h1>
                 <p className="text-sm md:text-base text-muted-foreground capitalize">
                     {todayFormatted || "\u00A0"}

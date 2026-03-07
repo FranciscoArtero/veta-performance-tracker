@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Download, Share, PlusSquare } from "lucide-react";
+import { Zap, Share, PlusSquare } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 export function InstallCard() {
@@ -59,7 +59,7 @@ export function InstallCard() {
             <div className="absolute inset-0 bg-white/5 backdrop-blur-sm pointer-events-none" />
             <CardContent className="p-4 relative flex items-center gap-4">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-violet-500/20 text-violet-400">
-                    <Download className="h-6 w-6" />
+                    <Zap className="h-6 w-6" />
                 </div>
                 <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-sm">Instalar App</h3>
