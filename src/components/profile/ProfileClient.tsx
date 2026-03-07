@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { signOut, useSession } from "next-auth/react";
-import { User, Lock, Globe, LogOut, Shield, Loader2, Check, AlertTriangle } from "lucide-react";
+import { useTheme } from "next-themes";
+import { User, Lock, Globe, LogOut, Shield, Loader2, Check, AlertTriangle, Palette } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { changePassword, updateTimezone } from "@/app/actions/profile";
@@ -42,6 +43,7 @@ export function ProfileClient({ profile }: Props) {
     const [timezone, setTimezone] = useState(profile.timezone);
     const [tzSaved, setTzSaved] = useState(false);
     const [isPending, startTransition] = useTransition();
+    const { theme, setTheme } = useTheme();
 
     function handleChangePassword(e: React.FormEvent) {
         e.preventDefault();
@@ -264,6 +266,38 @@ export function ProfileClient({ profile }: Props) {
                                 </option>
                             ))}
                         </select>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* Appearance / Theme */}
+            {!profile.mustChangePassword && (
+                <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+                    <CardHeader className="pb-3">
+                        <CardTitle className="flex items-center gap-2 text-base">
+                            <Palette className="h-4 w-4 text-pink-400" />
+                            Apariencia
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex gap-2 p-1 rounded-lg border border-border/50 bg-background/50">
+                            {["claro", "oscuro", "sistema"].map((t) => {
+                                const val = t === "claro" ? "light" : t === "oscuro" ? "dark" : "system";
+                                const isActive = theme === val;
+                                return (
+                                    <button
+                                        key={t}
+                                        onClick={() => setTheme(val)}
+                                        className={`flex-1 rounded-md py-1.5 text-xs font-medium capitalize transition-smooth ${isActive
+                                            ? "bg-violet-500 text-white shadow-sm"
+                                            : "text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5"
+                                            }`}
+                                    >
+                                        {t}
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </CardContent>
                 </Card>
             )}

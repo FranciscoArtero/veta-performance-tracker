@@ -142,7 +142,7 @@ export function CreateHabitDialog({ children }: Props) {
                                             title={item.label}
                                             className={`flex h-8 w-8 items-center justify-center rounded-lg transition-smooth ${isSelected
                                                 ? "bg-violet-500/20 ring-2 ring-violet-500 scale-110"
-                                                : "bg-white/5 hover:bg-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                                                : "bg-black/5 hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10"
                                                 }`}
                                         >
                                             <Icon
@@ -186,7 +186,7 @@ export function CreateHabitDialog({ children }: Props) {
                                 onClick={() => setFreqType("daily")}
                                 className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-smooth ${freqType === "daily"
                                     ? "bg-violet-500 text-white"
-                                    : "bg-white/5 text-muted-foreground hover:bg-white/10"
+                                    : "bg-black/5 dark:bg-white/5 text-muted-foreground hover:bg-black/10 dark:hover:bg-white/10"
                                     }`}
                             >
                                 <Repeat className="h-3.5 w-3.5" strokeWidth={1.5} />
@@ -197,7 +197,7 @@ export function CreateHabitDialog({ children }: Props) {
                                 onClick={() => setFreqType("weekly")}
                                 className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-smooth ${freqType === "weekly"
                                     ? "bg-violet-500 text-white"
-                                    : "bg-white/5 text-muted-foreground hover:bg-white/10"
+                                    : "bg-black/5 dark:bg-white/5 text-muted-foreground hover:bg-black/10 dark:hover:bg-white/10"
                                     }`}
                             >
                                 <CalendarDays className="h-3.5 w-3.5" strokeWidth={1.5} />
@@ -208,14 +208,14 @@ export function CreateHabitDialog({ children }: Props) {
 
                     {/* Weekly sub-options */}
                     {freqType === "weekly" && (
-                        <div className="space-y-3 rounded-lg border border-border/30 bg-white/[0.02] p-3">
+                        <div className="space-y-3 rounded-lg border border-border/30 bg-black/[0.02] dark:bg-white/[0.02] p-3">
                             <div className="flex gap-2">
                                 <button
                                     type="button"
                                     onClick={() => setWeeklyMode("fixed")}
                                     className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-smooth ${weeklyMode === "fixed"
-                                        ? "bg-cyan-500/20 text-cyan-300 ring-1 ring-cyan-500/50"
-                                        : "bg-white/5 text-muted-foreground hover:bg-white/10"
+                                        ? "bg-cyan-500/20 text-cyan-500 dark:text-cyan-300 ring-1 ring-cyan-500/50"
+                                        : "bg-black/5 dark:bg-white/5 text-muted-foreground hover:bg-black/10 dark:hover:bg-white/10"
                                         }`}
                                 >
                                     <Pin className="h-3 w-3" strokeWidth={1.5} />
@@ -225,8 +225,8 @@ export function CreateHabitDialog({ children }: Props) {
                                     type="button"
                                     onClick={() => setWeeklyMode("flexible")}
                                     className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-smooth ${weeklyMode === "flexible"
-                                        ? "bg-amber-500/20 text-amber-300 ring-1 ring-amber-500/50"
-                                        : "bg-white/5 text-muted-foreground hover:bg-white/10"
+                                        ? "bg-amber-500/20 text-amber-500 dark:text-amber-300 ring-1 ring-amber-500/50"
+                                        : "bg-black/5 dark:bg-white/5 text-muted-foreground hover:bg-black/10 dark:hover:bg-white/10"
                                         }`}
                                 >
                                     <Target className="h-3 w-3" strokeWidth={1.5} />
@@ -247,7 +247,7 @@ export function CreateHabitDialog({ children }: Props) {
                                                 onClick={() => toggleDay(d.value)}
                                                 className={`flex-1 rounded-lg py-2 text-xs font-bold transition-smooth ${targetDays.includes(d.value)
                                                     ? "bg-cyan-500 text-white"
-                                                    : "bg-white/5 text-muted-foreground hover:bg-white/10"
+                                                    : "bg-black/5 dark:bg-white/5 text-muted-foreground hover:bg-black/10 dark:hover:bg-white/10"
                                                     }`}
                                             >
                                                 {d.label}
@@ -282,7 +282,7 @@ export function CreateHabitDialog({ children }: Props) {
                     )}
 
                     {/* Preview */}
-                    <div className="rounded-lg border border-border/30 bg-white/5 p-3 flex items-center gap-3">
+                    <div className="rounded-lg border border-border/30 bg-black/5 dark:bg-white/5 p-3 flex items-center gap-3">
                         <div
                             className="flex h-10 w-10 items-center justify-center rounded-xl shrink-0"
                             // eslint-disable-next-line

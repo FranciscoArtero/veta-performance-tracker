@@ -56,7 +56,7 @@ export function InstallCard() {
 
     return (
         <Card className="border-border/50 bg-gradient-to-br from-violet-500/10 to-indigo-500/10 overflow-hidden relative">
-            <div className="absolute inset-0 bg-white/5 backdrop-blur-sm pointer-events-none" />
+            <div className="absolute inset-0 bg-black/5 dark:bg-white/5 backdrop-blur-sm pointer-events-none" />
             <CardContent className="p-4 relative flex items-center gap-4">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-violet-500/20 text-violet-400">
                     <Zap className="h-6 w-6" />

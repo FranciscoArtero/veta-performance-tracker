@@ -125,8 +125,8 @@ export function Sidebar() {
                   className={cn(
                     "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-smooth",
                     isActive
-                      ? "bg-white/10 text-white"
-                      : "text-muted-foreground hover:bg-white/5 hover:text-white",
+                      ? "bg-black/10 dark:bg-white/10 text-foreground"
+                      : "text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5 hover:text-foreground",
                     collapsed && "justify-center px-2"
                   )}
                 >
@@ -134,8 +134,8 @@ export function Sidebar() {
                     className={cn(
                       "h-[18px] w-[18px] shrink-0 transition-smooth",
                       isActive
-                        ? "text-violet-400"
-                        : "text-muted-foreground group-hover:text-white"
+                        ? "text-violet-500 dark:text-violet-400"
+                        : "text-muted-foreground group-hover:text-foreground"
                     )}
                   />
                   {!collapsed && (
@@ -204,7 +204,7 @@ export function Sidebar() {
             {/* Collapse Toggle */}
             <button
               onClick={() => setCollapsed(!collapsed)}
-              className="flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-smooth hover:bg-white/5 hover:text-white"
+              className="flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-smooth hover:bg-black/5 dark:hover:bg-white/5 hover:text-foreground"
             >
               {collapsed ? (
                 <ChevronRight className="h-4 w-4" />
@@ -233,14 +233,14 @@ export function Sidebar() {
               className={cn(
                 "flex flex-1 flex-col items-center justify-center gap-0.5 py-2 pt-2.5 text-[10px] font-medium transition-smooth",
                 isActive
-                  ? "text-violet-400"
-                  : "text-muted-foreground active:text-white"
+                  ? "text-violet-500 dark:text-violet-400"
+                  : "text-muted-foreground active:text-foreground"
               )}
             >
               <item.icon
                 className={cn(
                   "h-5 w-5 transition-smooth",
-                  isActive && "text-violet-400"
+                  isActive && "text-violet-500 dark:text-violet-400"
                 )}
               />
               <span className="truncate">{item.label}</span>

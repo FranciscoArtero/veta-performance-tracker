@@ -39,7 +39,7 @@ const listItem = {
 };
 
 // ─── Glass card class ─────────────────────────────────────────
-const glassCard = "bg-zinc-900/40 backdrop-blur-md border-white/5";
+const glassCard = "bg-black/[0.02] dark:bg-zinc-900/40 backdrop-blur-md border-black/5 dark:border-white/5";
 
 // ─── Types ────────────────────────────────────────────────────
 type HabitWithLogs = {
@@ -345,10 +345,10 @@ export function DashboardClient({
                         <CardHeader className="pb-3">
                             <div className="flex items-center justify-between">
                                 <CardTitle className="flex items-center gap-2 text-base">
-                                    <Target className="h-4 w-4 text-violet-400" />
+                                    <Target className="h-4 w-4 text-violet-500 dark:text-violet-400" />
                                     Hábitos de hoy
                                 </CardTitle>
-                                <Badge variant="secondary" className="text-xs bg-white/5 border-white/10">
+                                <Badge variant="secondary" className="text-xs bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10">
                                     {progressPercent}%
                                 </Badge>
                             </div>
@@ -373,7 +373,7 @@ export function DashboardClient({
                                                 initial="hidden"
                                                 animate="visible"
                                                 exit="exit"
-                                                className="group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-smooth hover:bg-white/5"
+                                                className="group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-smooth hover:bg-black/5 dark:hover:bg-white/5"
                                             >
                                                 {(() => {
                                                     const IconComponent = resolveHabitIcon(habit.icon);
@@ -415,14 +415,14 @@ export function DashboardClient({
                                             animate="visible"
                                             exit="exit"
                                             whileTap={{ scale: 0.98 }}
-                                            className="group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-smooth hover:bg-white/5 cursor-pointer"
+                                            className="group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-smooth hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer"
                                             onClick={() => handleToggle(habit.id)}
                                         >
                                             <motion.button
                                                 whileTap={{ scale: 0.85 }}
                                                 className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-smooth ${done
                                                     ? "border-violet-500 bg-violet-500 text-white"
-                                                    : "border-white/20 hover:border-violet-400"
+                                                    : "border-black/20 dark:border-white/20 hover:border-violet-500 dark:hover:border-violet-400"
                                                     }`}
                                             >
                                                 {done && <CheckCircle2 className="h-3.5 w-3.5" />}
@@ -465,10 +465,10 @@ export function DashboardClient({
                         <CardHeader className="pb-3">
                             <div className="flex items-center justify-between">
                                 <CardTitle className="flex items-center gap-2 text-base">
-                                    <ListTodo className="h-4 w-4 text-emerald-400" />
+                                    <ListTodo className="h-4 w-4 text-emerald-500 dark:text-emerald-400" />
                                     Tareas del día
                                 </CardTitle>
-                                <Badge variant="secondary" className="text-xs bg-white/5 border-white/10">
+                                <Badge variant="secondary" className="text-xs bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10">
                                     {completedTasksToday}/{totalTasksToday}
                                 </Badge>
                             </div>
@@ -493,7 +493,7 @@ export function DashboardClient({
                                     value={newTaskTitle}
                                     onChange={(e) => setNewTaskTitle(e.target.value)}
                                     placeholder="Agregar tarea..."
-                                    className="flex-1 rounded-lg border border-white/5 bg-white/[0.03] px-3 py-2 text-sm placeholder:text-muted-foreground/50 focus:border-emerald-500/50 focus:outline-none focus:ring-1 focus:ring-emerald-500/30 transition-smooth"
+                                    className="flex-1 rounded-lg border border-black/5 dark:border-white/5 bg-black/[0.03] dark:bg-white/[0.03] px-3 py-2 text-sm placeholder:text-muted-foreground/50 focus:border-emerald-500/50 focus:outline-none focus:ring-1 focus:ring-emerald-500/30 transition-smooth"
                                 />
                                 <motion.button
                                     type="submit"
@@ -522,7 +522,7 @@ export function DashboardClient({
                                         animate="visible"
                                         exit="exit"
                                         whileTap={{ scale: 0.98 }}
-                                        className="group flex items-center gap-3 rounded-lg px-3 py-3 transition-smooth hover:bg-white/5 cursor-pointer select-none"
+                                        className="group flex items-center gap-3 rounded-lg px-3 py-3 transition-smooth hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer select-none"
                                         style={{ WebkitUserSelect: "none", touchAction: "manipulation" }}
                                         onClick={() => {
                                             startTransition(async () => {
@@ -535,7 +535,7 @@ export function DashboardClient({
                                             whileTap={{ scale: 0.85 }}
                                             className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border-2 transition-smooth ${task.completed
                                                 ? "border-emerald-500 bg-emerald-500 text-white"
-                                                : "border-white/15 hover:border-emerald-400"
+                                                : "border-black/15 dark:border-white/15 hover:border-emerald-500 dark:hover:border-emerald-400"
                                                 }`}
                                         >
                                             {task.completed && <CheckCircle2 className="h-4 w-4" />}
@@ -578,10 +578,10 @@ export function DashboardClient({
                         <CardHeader className="pb-3">
                             <div className="flex items-center justify-between">
                                 <CardTitle className="flex items-center gap-2 text-base">
-                                    <Brain className="h-4 w-4 text-cyan-400" />
+                                    <Brain className="h-4 w-4 text-cyan-500 dark:text-cyan-400" />
                                     Estado mental
                                 </CardTitle>
-                                <Badge variant="secondary" className="text-xs bg-white/5 border-white/10">
+                                <Badge variant="secondary" className="text-xs bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10">
                                     Últimos 7 días
                                 </Badge>
                             </div>
@@ -633,7 +633,7 @@ export function DashboardClient({
                                 </div>
 
                                 {/* Sliders */}
-                                <div className="border-t border-white/5 pt-4">
+                                <div className="border-t border-black/5 dark:border-white/5 pt-4">
                                     <MentalStateInput initialState={todayMood} />
                                 </div>
                             </div>
