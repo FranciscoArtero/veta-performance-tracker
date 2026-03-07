@@ -3,8 +3,9 @@
 import { useOptimistic, useTransition, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, Flame } from "lucide-react";
 import { toggleHabitLog, deleteHabit, addWeeklySession } from "@/app/actions/habits";
+import { resolveHabitIcon } from "@/lib/habit-icons";
 
 type HabitWithLogs = {
     id: string;
@@ -106,9 +107,12 @@ export function HabitCard({ habit, streak, weekDates }: Props) {
                     <div className="flex items-center gap-3">
                         <div
                             className="flex h-10 w-10 items-center justify-center rounded-xl text-xl transition-smooth group-hover:scale-110 shrink-0"
-                            style={{ backgroundColor: `${habit.color}15` }}
+                            style={{ backgroundColor: `${habit.color}15`, color: habit.color }}
                         >
-                            {habit.icon}
+                            {(() => {
+                                const IconComponent = resolveHabitIcon(habit.icon);
+                                return <IconComponent className="h-5 w-5" strokeWidth={1.5} />;
+                            })()}
                         </div>
                         <div className="min-w-0">
                             <p className="font-medium text-sm truncate">{habit.name}</p>
@@ -134,10 +138,11 @@ export function HabitCard({ habit, streak, weekDates }: Props) {
                         </button>
                         <Badge
                             variant="secondary"
-                            className="text-[10px] font-semibold"
+                            className="flex items-center gap-1 text-[10px] font-semibold"
                             style={{ color: habit.color }}
                         >
-                            🔥 {streak}
+                            <Flame className="h-3 w-3" strokeWidth={2} />
+                            {streak}
                         </Badge>
                     </div>
                 </div>

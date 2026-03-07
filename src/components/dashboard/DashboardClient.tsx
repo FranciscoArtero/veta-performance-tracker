@@ -404,6 +404,7 @@ export function DashboardClient({
                                     }
 
                                     // (non-target WEEKLY_FIXED already filtered above)
+                                    const IconComponent = resolveHabitIcon(habit.icon);
 
                                     return (
                                         <motion.div
@@ -426,7 +427,11 @@ export function DashboardClient({
                                             >
                                                 {done && <CheckCircle2 className="h-3.5 w-3.5" />}
                                             </motion.button>
-                                            <span className="text-xl leading-none">{habit.icon}</span>
+                                            <IconComponent
+                                                className="h-5 w-5 shrink-0 transition-colors"
+                                                style={{ color: done ? habit.color : undefined }}
+                                                strokeWidth={1.5}
+                                            />
                                             <span
                                                 className={`flex-1 text-sm ${done
                                                     ? "text-muted-foreground line-through"
@@ -436,8 +441,9 @@ export function DashboardClient({
                                                 {habit.name}
                                             </span>
                                             {streaks[habit.id] > 0 && (
-                                                <span className="text-xs text-orange-400 font-medium">
-                                                    🔥{streaks[habit.id]}
+                                                <span className="flex items-center gap-1 text-xs text-orange-400 font-medium">
+                                                    <Flame className="h-3 w-3" strokeWidth={2} />
+                                                    {streaks[habit.id]}
                                                 </span>
                                             )}
                                         </motion.div>
