@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 
 // ─── Dialog Context ───
@@ -69,8 +70,10 @@ function DialogContent({
     className?: string;
 }) {
     const { open, setOpen } = React.useContext(DialogContext);
+    const [mounted, setMounted] = React.useState(false);
 
     React.useEffect(() => {
+        setMounted(true);
         if (!open) return;
         const handler = (e: KeyboardEvent) => {
             if (e.key === "Escape") setOpen(false);
@@ -79,10 +82,10 @@ function DialogContent({
         return () => document.removeEventListener("keydown", handler);
     }, [open, setOpen]);
 
-    if (!open) return null;
+    if (!open || !mounted) return null;
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+    return createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center">
             {/* Overlay */}
             <div
                 className="fixed inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in-0"
@@ -91,7 +94,7 @@ function DialogContent({
             {/* Content */}
             <div
                 className={cn(
-                    "relative z-50 w-[calc(100%-2rem)] max-w-lg rounded-xl border border-border/50 bg-card p-4 md:p-6 shadow-2xl animate-in fade-in-0 zoom-in-95 max-h-[85vh] overflow-y-auto",
+                    "relative z-[101] w-[calc(100%-2rem)] max-w-lg rounded-xl border border-border/50 bg-card p-4 md:p-6 shadow-2xl animate-in fade-in-0 zoom-in-95 max-h-[85vh] overflow-y-auto",
                     className
                 )}
             >
@@ -99,7 +102,7 @@ function DialogContent({
                 <button
                     onClick={() => setOpen(false)}
                     aria-label="Cerrar"
-                    className="absolute right-4 top-4 rounded-sm text-muted-foreground/50 ring-offset-background transition-opacity hover:text-foreground focus:outline-none"
+                    className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none z-10 p-1 bg-white/10 hover:bg-white/20 text-white"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -118,7 +121,8 @@ function DialogContent({
                 </button>
                 {children}
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }
 

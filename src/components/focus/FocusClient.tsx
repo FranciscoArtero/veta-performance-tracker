@@ -11,13 +11,11 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 
-// Dummy Ambient Sound URLs (Clean CC0 or generated noise)
-// In a real prod environment we'd host these on an S3/CDN or synthesize.
+// Reliable Wikimedia Commons URLs for ambient noise
 const AMBIENT_SOUNDS = {
     none: "",
-    rain: "https://cdn.pixabay.com/download/audio/2021/08/04/audio_349d5bf1e4.mp3?filename=rain-and-thunder-16705.mp3",
-    noise: "https://cdn.pixabay.com/download/audio/2022/10/25/audio_1c37b30fb3.mp3?filename=brown-noise-121570.mp3",
-    zen: "https://cdn.pixabay.com/download/audio/2022/02/07/audio_be0c8c0fbd.mp3?filename=tibetan-singing-bowl-1-4966.mp3"
+    rain: "https://upload.wikimedia.org/wikipedia/commons/4/4b/Rain_sound.ogg",
+    noise: "https://upload.wikimedia.org/wikipedia/commons/d/d4/Brown_noise.ogg",
 };
 
 type AmbientType = keyof typeof AMBIENT_SOUNDS;
@@ -40,29 +38,45 @@ export default function FocusClient({ initialTasks = [] }: { initialTasks?: Task
     // Track state transitions for prompt
     const [prevTimerState, setPrevTimerState] = useState(timer.timerState);
 
-    // Audio Player Side Effect
-    useEffect(() => {
+    // Synchronous Audio Handler (Browser requires user interaction to play audio)
+    const handleAmbientChange = (type: AmbientType) => {
+        setAmbient(type);
+
         if (!audioRef.current) {
             audioRef.current = new Audio();
             audioRef.current.loop = true;
         }
 
         const audio = audioRef.current;
-        if (ambient === "none") {
+
+        if (type === "none") {
             audio.pause();
         } else {
-            // Play ambient if they select it (so they can hear it) or if timer is running.
-            // Pause ONLY if the timer is explicitly paused.
-            audio.src = AMBIENT_SOUNDS[ambient];
+            // Only update src if changed
+            if (audio.src !== AMBIENT_SOUNDS[type]) {
+                audio.src = AMBIENT_SOUNDS[type];
+            }
             audio.volume = volume;
+
             if (timer.isPaused && timer.timerState !== "idle") {
                 audio.pause();
             } else {
                 audio.play().catch(console.warn);
             }
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [ambient, timer.timerState, timer.isPaused]);
+    };
+
+    // Timer Auto-Pause/Play audio sync effect
+    useEffect(() => {
+        const audio = audioRef.current;
+        if (!audio || ambient === "none") return;
+
+        if (timer.isPaused && timer.timerState !== "idle") {
+            audio.pause();
+        } else {
+            audio.play().catch(console.warn);
+        }
+    }, [timer.timerState, timer.isPaused, ambient]);
 
     useEffect(() => {
         if (audioRef.current) audioRef.current.volume = volume;
@@ -287,19 +301,19 @@ export default function FocusClient({ initialTasks = [] }: { initialTasks?: Task
                 <div className="absolute bottom-12 z-20 flex flex-col items-center gap-4">
                     <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-full p-1 backdrop-blur-md">
                         <button
-                            onClick={() => setAmbient("none")}
+                            onClick={() => handleAmbientChange("none")}
                             className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${ambient === "none" ? "bg-zinc-700 text-white shadow-sm" : "text-zinc-400 hover:text-zinc-300"}`}
                         >
                             Off
                         </button>
                         <button
-                            onClick={() => setAmbient("rain")}
+                            onClick={() => handleAmbientChange("rain")}
                             className={`px-4 py-1.5 rounded-full flex items-center gap-1.5 text-xs font-medium transition-all ${ambient === "rain" ? "bg-zinc-700 text-white shadow-sm" : "text-zinc-400 hover:text-zinc-300"}`}
                         >
                             <CloudRain className="h-3 w-3" /> Lluvia
                         </button>
                         <button
-                            onClick={() => setAmbient("noise")}
+                            onClick={() => handleAmbientChange("noise")}
                             className={`px-4 py-1.5 rounded-full flex items-center gap-1.5 text-xs font-medium transition-all ${ambient === "noise" ? "bg-zinc-700 text-white shadow-sm" : "text-zinc-400 hover:text-zinc-300"}`}
                         >
                             <Waves className="h-3 w-3" /> Ruido Blanco
