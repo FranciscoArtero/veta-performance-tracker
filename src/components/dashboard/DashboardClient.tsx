@@ -18,6 +18,8 @@ import { MonthlyHeatmap } from "./MonthlyHeatmap";
 import { Plus, Trash2, ListTodo } from "lucide-react";
 import { resolveHabitIcon } from "@/lib/habit-icons";
 import { CelebrationModal } from "@/components/gamification/CelebrationModal";
+import { useNetworkStatus } from "@/components/providers/NetworkStatusProvider";
+import { addPendingOp } from "@/lib/offline-db";
 
 // ─── Animation variants ──────────────────────────────────────
 const fadeIn = {
@@ -209,10 +211,17 @@ export function DashboardClient({
             )
             : 0;
 
+    const { isOnline, refreshPending } = useNetworkStatus();
+
     function handleToggle(habitId: string) {
         const todayISO = getTodayISO();
         startTransition(async () => {
             setOptimisticToday(habitId);
+            if (!isOnline) {
+                await addPendingOp("TOGGLE_HABIT", { habitId, dateISO: todayISO });
+                await refreshPending();
+                return;
+            }
             const result = await toggleHabitLog(habitId, todayISO);
             if (result?.newlyUnlockedAchievements?.length) {
                 setUnlockedAchievements(result.newlyUnlockedAchievements);

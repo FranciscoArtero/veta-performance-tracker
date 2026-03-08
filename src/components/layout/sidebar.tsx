@@ -24,6 +24,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
+import { NetworkIndicator } from "@/components/layout/NetworkIndicator";
 
 const navItems = [
   {
@@ -201,6 +202,9 @@ export function Sidebar() {
               </button>
             )}
 
+            {/* Network Status */}
+            {!collapsed && <NetworkIndicator />}
+
             {/* Collapse Toggle */}
             <button
               onClick={() => setCollapsed(!collapsed)}
@@ -251,6 +255,11 @@ export function Sidebar() {
           );
         })}
       </nav>
+
+      {/* Mobile Network Indicator */}
+      <div className="fixed bottom-[calc(env(safe-area-inset-bottom)+56px)] left-2 z-50 md:hidden">
+        <NetworkIndicator />
+      </div>
     </>
   );
 }

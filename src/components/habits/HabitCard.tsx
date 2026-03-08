@@ -7,6 +7,8 @@ import { Trash2, Plus, Flame } from "lucide-react";
 import { toggleHabitLog, deleteHabit, addWeeklySession } from "@/app/actions/habits";
 import { resolveHabitIcon } from "@/lib/habit-icons";
 import { CelebrationModal } from "@/components/gamification/CelebrationModal";
+import { useNetworkStatus } from "@/components/providers/NetworkStatusProvider";
+import { addPendingOp } from "@/lib/offline-db";
 
 type HabitWithLogs = {
     id: string;
@@ -58,9 +60,16 @@ export function HabitCard({ habit, streak, weekDates }: Props) {
         (state: number, delta: number) => state + delta
     );
 
+    const { isOnline, refreshPending } = useNetworkStatus();
+
     function handleToggleDay(dateISO: string) {
         startTransition(async () => {
             setOptimisticWeek(dateISO);
+            if (!isOnline) {
+                await addPendingOp("TOGGLE_HABIT", { habitId: habit.id, dateISO });
+                await refreshPending();
+                return;
+            }
             const result = await toggleHabitLog(habit.id, dateISO);
             if (result?.newlyUnlockedAchievements?.length) {
                 setUnlockedAchievements(result.newlyUnlockedAchievements);
