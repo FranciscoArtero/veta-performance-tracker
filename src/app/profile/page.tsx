@@ -14,6 +14,7 @@ export default async function ProfilePage() {
                 timezone: profile.timezone,
                 mustChangePassword: profile.mustChangePassword,
                 createdAt: profile.createdAt.toISOString(),
+                achievements: profile.unlockedAchievements,
             }} />
         </div>
     );

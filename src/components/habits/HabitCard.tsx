@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Trash2, Plus, Flame } from "lucide-react";
 import { toggleHabitLog, deleteHabit, addWeeklySession } from "@/app/actions/habits";
 import { resolveHabitIcon } from "@/lib/habit-icons";
+import { CelebrationModal } from "@/components/gamification/CelebrationModal";
 
 type HabitWithLogs = {
     id: string;
@@ -31,6 +32,7 @@ const DAY_LABELS = ["D", "L", "M", "X", "J", "V", "S"];
 export function HabitCard({ habit, streak, weekDates }: Props) {
     const [, startTransition] = useTransition();
     const [confirmDelete, setConfirmDelete] = useState(false);
+    const [unlockedAchievements, setUnlockedAchievements] = useState<string[]>([]);
 
     // ─── Shared: optimistic week map for daily + fixed ───
     const initialWeekMap: Record<string, boolean> = {};
@@ -59,7 +61,10 @@ export function HabitCard({ habit, streak, weekDates }: Props) {
     function handleToggleDay(dateISO: string) {
         startTransition(async () => {
             setOptimisticWeek(dateISO);
-            await toggleHabitLog(habit.id, dateISO);
+            const result = await toggleHabitLog(habit.id, dateISO);
+            if (result?.newlyUnlockedAchievements?.length) {
+                setUnlockedAchievements(result.newlyUnlockedAchievements);
+            }
         });
     }
 
@@ -101,6 +106,10 @@ export function HabitCard({ habit, streak, weekDates }: Props) {
 
     return (
         <Card className="group border-border/50 bg-card/50 backdrop-blur-sm transition-smooth hover:border-violet-500/30 hover:shadow-lg hover:shadow-violet-500/5">
+            <CelebrationModal
+                achievements={unlockedAchievements}
+                onClose={() => setUnlockedAchievements([])}
+            />
             <CardContent className="p-4 md:p-5">
                 {/* Header */}
                 <div className="flex items-start justify-between">

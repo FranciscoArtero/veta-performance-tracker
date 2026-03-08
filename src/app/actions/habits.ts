@@ -23,6 +23,218 @@ function toDateOnly(dateISO: string): Date {
     return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
 }
 
+/** Get diff in days between two dates */
+function getDaysDiff(d1: Date, d2: Date) {
+    const utc1 = Date.UTC(d1.getFullYear(), d1.getMonth(), d1.getDate());
+    const utc2 = Date.UTC(d2.getFullYear(), d2.getMonth(), d2.getDate());
+    return Math.floor((utc2 - utc1) / (1000 * 60 * 60 * 24));
+}
+
+// ─────────────────────────────────────
+// Gamification: Streak Engine
+// ─────────────────────────────────────
+
+/**
+ * Checks if a user has earned a new achievement based on their new streak.
+ * If yes, it creates the achievement.
+ */
+async function checkAchievements(userId: string, newGlobalStreak: number) {
+    const milestones = [
+        { type: "BRONZE_7", days: 7 },
+        { type: "SILVER_30", days: 30 },
+        { type: "GOLD_100", days: 100 },
+        { type: "DIAMOND_365", days: 365 },
+    ];
+
+    const newlyUnlocked: string[] = [];
+    for (const milestone of milestones) {
+        if (newGlobalStreak >= milestone.days) {
+            // Check if already unlocked
+            const existing = await prisma.achievement.findUnique({
+                where: { userId_type: { userId, type: milestone.type } },
+            });
+            if (!existing) {
+                await prisma.achievement.create({
+                    data: { userId, type: milestone.type },
+                });
+                console.log(`[Gamification] Achievement unlocked! ${milestone.type} for user ${userId}`);
+                newlyUnlocked.push(milestone.type);
+            }
+        }
+    }
+    return newlyUnlocked;
+}
+
+/**
+ * Recalculates the user's global streak.
+ * The global streak increments if the user completes ALL their required daily/fixed habits for a day.
+ * We evaluate today and yesterday to see if the streak is maintained or broken.
+ */
+export async function syncGlobalStreak(userId: string) {
+    const now = new Date();
+    const todayUTC = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+    const yesterdayUTC = new Date(todayUTC.getTime() - 24 * 60 * 60 * 1000);
+
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { currentGlobalStreak: true, longestGlobalStreak: true, lastGlobalStreakDate: true },
+    });
+    if (!user) return [];
+
+    // Get all habits to know what is required
+    const habits = await prisma.habit.findMany({
+        where: { userId, isActive: true },
+        select: { id: true, frequency: true, targetDays: true },
+    });
+
+    if (habits.length === 0) return [];
+
+    // Helper: did user complete all requirements for a specific date?
+    const checkDayCompleted = async (checkDate: Date) => {
+        const dow = checkDate.getUTCDay();
+
+        // 1. Identify required habits for this day
+        const requiredHabitIds = habits.filter((h) => {
+            if (h.frequency === "weekly_flexible") return false;
+            if (h.frequency === "weekly_fixed") return (h.targetDays ?? []).includes(dow);
+            return true; // daily
+        }).map((h) => h.id);
+
+        if (requiredHabitIds.length === 0) return true; // Free day keeps streak alive
+
+        // 2. Count completions
+        const logs = await prisma.habitLog.count({
+            where: {
+                habitId: { in: requiredHabitIds },
+                date: checkDate,
+                completed: true,
+            },
+        });
+
+        return logs === requiredHabitIds.length;
+    };
+
+    const isTodayComplete = await checkDayCompleted(todayUTC);
+    const isYesterdayComplete = await checkDayCompleted(yesterdayUTC);
+
+    let newCurrent = user.currentGlobalStreak;
+    let newLastDate = user.lastGlobalStreakDate;
+
+    // Safe gap calculation
+    const daysSinceLastComplete = user.lastGlobalStreakDate
+        ? getDaysDiff(new Date(user.lastGlobalStreakDate), todayUTC)
+        : -1;
+
+    // 1. If yesterday was NOT complete and today is NOT complete, streak breaks
+    if (!isYesterdayComplete && !isTodayComplete && daysSinceLastComplete > 1) {
+        newCurrent = 0;
+    }
+
+    // 2. If yesterday was complete, but lastGlobalDate isn't updated
+    if (isYesterdayComplete && daysSinceLastComplete > 1) {
+        // This implies a sync gap, let's just reset to 1
+        newCurrent = 1;
+        newLastDate = yesterdayUTC;
+    }
+
+    // 3. Complete today!
+    if (isTodayComplete) {
+        if (!user.lastGlobalStreakDate) {
+            newCurrent = 1;
+        } else if (daysSinceLastComplete === 1) {
+            newCurrent = user.currentGlobalStreak + 1; // It was yesterday, so sequential
+        } else if (daysSinceLastComplete > 1) {
+            newCurrent = 1; // Gap
+        } else if (daysSinceLastComplete === 0) {
+            // Already counted today
+            newCurrent = user.currentGlobalStreak;
+        }
+        newLastDate = todayUTC;
+    } else {
+        // If today is NOT complete, but yesterday WAS, they keep the streak until tomorrow
+        if (isYesterdayComplete && daysSinceLastComplete > 0) {
+            // Ensure yesterday is counted if not already
+            if (daysSinceLastComplete > 1) newCurrent = 1;
+            newLastDate = yesterdayUTC;
+        }
+    }
+
+    const newLongest = Math.max(newCurrent, user.longestGlobalStreak);
+
+    let unlockedAchievements: string[] = [];
+
+    if (newCurrent !== user.currentGlobalStreak || newLongest !== user.longestGlobalStreak || newLastDate !== user.lastGlobalStreakDate) {
+        await prisma.user.update({
+            where: { id: userId },
+            data: {
+                currentGlobalStreak: newCurrent,
+                longestGlobalStreak: newLongest,
+                lastGlobalStreakDate: newLastDate,
+            },
+        });
+
+        // Trigger achievements check
+        if (newCurrent > user.currentGlobalStreak) {
+            unlockedAchievements = await checkAchievements(userId, newCurrent);
+        }
+    }
+
+    return unlockedAchievements;
+}
+
+/**
+ * Recalculate streak for a specific habit by iterating over its logs.
+ */
+export async function recalculateHabitStreak(habitId: string) {
+    const habit = await prisma.habit.findUnique({
+        where: { id: habitId },
+        select: { frequency: true, targetDays: true, currentStreak: true, longestStreak: true },
+    });
+    if (!habit || habit.frequency === "weekly_flexible") return;
+
+    const logs = await prisma.habitLog.findMany({
+        where: { habitId, completed: true },
+        orderBy: { date: "desc" },
+    });
+
+    const completedTimeSet = new Set(logs.map(l => new Date(l.date).getTime()));
+
+    const now = new Date();
+    const todayUTC = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+
+    let currentStreak = 0;
+    const checkDate = new Date(todayUTC);
+
+    // Safety break loop
+    for (let i = 0; i < 3650; i++) {
+        const dow = checkDate.getUTCDay();
+        const isTargetDay = habit.frequency === "daily" || habit.targetDays.includes(dow);
+
+        if (isTargetDay) {
+            if (completedTimeSet.has(checkDate.getTime())) {
+                currentStreak++;
+            } else {
+                // If the block breaks AT today, it's fine (they have until midnight).
+                // If it breaks BEFORE today, the streak is over.
+                if (i > 0) {
+                    break;
+                }
+            }
+        }
+
+        checkDate.setDate(checkDate.getDate() - 1);
+    }
+
+    // We update only if changed to avoid unnecessary writes
+    const newLongest = Math.max(currentStreak, habit.longestStreak);
+    if (currentStreak !== habit.currentStreak || newLongest !== habit.longestStreak) {
+        await prisma.habit.update({
+            where: { id: habitId },
+            data: { currentStreak, longestStreak: newLongest },
+        });
+    }
+}
+
 // ─────────────────────────────────────
 // Toggle Habit Log (Daily + Weekly Fixed)
 // ─────────────────────────────────────
@@ -48,7 +260,7 @@ export async function toggleHabitLog(habitId: string, dateISO: string) {
         const dayOfWeek = dateOnly.getUTCDay();
         if (!habit.targetDays.includes(dayOfWeek)) {
             console.log("[toggleHabitLog] Day blocked for fixed habit:", dayOfWeek);
-            return; // Don't allow toggle on non-target days
+            return { newlyUnlockedAchievements: [] }; // Don't allow toggle on non-target days
         }
     }
 
@@ -68,8 +280,15 @@ export async function toggleHabitLog(habitId: string, dateISO: string) {
         console.log("[toggleHabitLog] Created new log:", created.id);
     }
 
+    // Sync individual streak first
+    await recalculateHabitStreak(habitId);
+    // Sync global streak
+    const newlyUnlockedAchievements = await syncGlobalStreak(userId) || [];
+
     revalidatePath("/");
     revalidatePath("/habits");
+
+    return { newlyUnlockedAchievements };
 }
 
 // ─────────────────────────────────────

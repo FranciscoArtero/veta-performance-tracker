@@ -11,7 +11,23 @@ export async function getProfile() {
     const { id } = await requireAuth();
     const user = await prisma.user.findUnique({
         where: { id },
-        select: { id: true, name: true, email: true, timezone: true, mustChangePassword: true, createdAt: true },
+        select: {
+            id: true,
+            name: true,
+            email: true,
+            timezone: true,
+            mustChangePassword: true,
+            createdAt: true,
+            currentGlobalStreak: true,
+            longestGlobalStreak: true,
+            unlockedAchievements: {
+                select: {
+                    id: true,
+                    type: true,
+                    unlockedAt: true
+                }
+            }
+        },
     });
     if (!user) throw new Error("User not found");
     return user;

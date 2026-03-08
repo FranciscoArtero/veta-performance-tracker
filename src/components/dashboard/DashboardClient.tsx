@@ -17,6 +17,7 @@ import { MentalStateInput } from "./MentalStateInput";
 import { MonthlyHeatmap } from "./MonthlyHeatmap";
 import { Plus, Trash2, ListTodo } from "lucide-react";
 import { resolveHabitIcon } from "@/lib/habit-icons";
+import { CelebrationModal } from "@/components/gamification/CelebrationModal";
 
 // ─── Animation variants ──────────────────────────────────────
 const fadeIn = {
@@ -75,7 +76,8 @@ type TaskItem = {
 type Props = {
     habits: HabitWithLogs[];
     streaks: Record<string, number>;
-    bestStreak: number;
+    globalStreak: number;
+    longestGlobalStreak: number;
     moodData: MoodDataPoint[];
     monthlyData: MonthlyData;
     todayMood: { mood: number; motivation: number } | null;
@@ -100,7 +102,8 @@ function isCompletedToday(logs: { date: Date; completed: boolean }[]) {
 export function DashboardClient({
     habits,
     streaks,
-    bestStreak,
+    globalStreak,
+    longestGlobalStreak,
     moodData,
     monthlyData,
     todayMood,
@@ -111,6 +114,7 @@ export function DashboardClient({
     const [todayFormatted, setTodayFormatted] = useState("");
     const [, startTransition] = useTransition();
     const [newTaskTitle, setNewTaskTitle] = useState("");
+    const [unlockedAchievements, setUnlockedAchievements] = useState<string[]>([]);
     const [optimisticTasks, setOptimisticTasks] = useOptimistic(
         initialTasks,
         (state: TaskItem[], action: { type: string; task?: TaskItem; id?: string }) => {
@@ -209,25 +213,41 @@ export function DashboardClient({
         const todayISO = getTodayISO();
         startTransition(async () => {
             setOptimisticToday(habitId);
-            await toggleHabitLog(habitId, todayISO);
+            const result = await toggleHabitLog(habitId, todayISO);
+            if (result?.newlyUnlockedAchievements?.length) {
+                setUnlockedAchievements(result.newlyUnlockedAchievements);
+            }
         });
     }
 
     return (
         <div className="p-4 md:p-6 lg:p-8 space-y-6 md:space-y-8">
+            <CelebrationModal
+                achievements={unlockedAchievements}
+                onClose={() => setUnlockedAchievements([])}
+            />
             {/* Header */}
             <motion.div
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="space-y-1"
+                className="flex items-center justify-between"
             >
-                <h1 className="text-xl md:text-2xl font-bold tracking-tight lg:text-3xl">
-                    {greeting || "\u00A0"}
-                </h1>
-                <p className="text-sm md:text-base text-muted-foreground capitalize">
-                    {todayFormatted || "\u00A0"}
-                </p>
+                <div className="space-y-1">
+                    <h1 className="text-xl md:text-2xl font-bold tracking-tight lg:text-3xl">
+                        {greeting || "\u00A0"}
+                    </h1>
+                    <p className="text-sm md:text-base text-muted-foreground capitalize">
+                        {todayFormatted || "\u00A0"}
+                    </p>
+                </div>
+                {/* Global Streak Indicator */}
+                <div className="flex items-center gap-2 bg-orange-500/10 dark:bg-orange-500/20 px-3 py-1.5 rounded-full border border-orange-500/20">
+                    <Flame className="h-5 w-5 text-orange-500" strokeWidth={2.5} />
+                    <span className="font-bold text-orange-600 dark:text-orange-400 text-sm md:text-base">
+                        {globalStreak > 0 ? `${globalStreak} Días` : "0 Días"}
+                    </span>
+                </div>
             </motion.div>
 
             {/* Stats Row with Progress Rings */}
@@ -269,10 +289,10 @@ export function DashboardClient({
                             <div className="flex items-center justify-between">
                                 <div className="space-y-1">
                                     <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-                                        Mejor racha
+                                        Racha Máxima
                                     </p>
                                     <div className="flex items-baseline gap-1">
-                                        <p className="text-2xl font-bold">{bestStreak}</p>
+                                        <p className="text-2xl font-bold">{longestGlobalStreak}</p>
                                         <span className="text-xs text-muted-foreground">días</span>
                                     </div>
                                 </div>

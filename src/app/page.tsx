@@ -5,30 +5,34 @@ import {
   getMonthlyLogs,
 } from "@/app/actions/habits";
 import { getTodayTasks } from "@/app/actions/tasks";
-import { computeStreak } from "@/lib/habits";
 import {
   getMentalStateWeek,
   getTodayMentalState,
 } from "@/app/actions/mental-state";
 import { DashboardClient } from "@/components/dashboard/DashboardClient";
+import { requireAuth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 export default async function DashboardPage() {
   try {
-    const [habits, moodData, monthlyData, todayMood, tasks] = await Promise.all([
+    const { id: userId } = await requireAuth();
+
+    const [habits, moodData, monthlyData, todayMood, tasks, user] = await Promise.all([
       getHabitsWithLogs(),
       getMentalStateWeek(),
       getMonthlyLogs(),
       getTodayMentalState(),
       getTodayTasks(),
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: { currentGlobalStreak: true, longestGlobalStreak: true }
+      })
     ]);
 
-    // Compute streaks for each habit
+    // Use Prisma's native currentStreak for habits
     const streaks: Record<string, number> = {};
-    let bestStreak = 0;
     for (const habit of habits) {
-      const s = computeStreak(habit.logs);
-      streaks[habit.id] = s;
-      if (s > bestStreak) bestStreak = s;
+      streaks[habit.id] = habit.currentStreak ?? 0;
     }
 
     // Serialize dates for client
@@ -55,7 +59,8 @@ export default async function DashboardPage() {
       <DashboardClient
         habits={serializedHabits}
         streaks={streaks}
-        bestStreak={bestStreak}
+        globalStreak={user?.currentGlobalStreak ?? 0}
+        longestGlobalStreak={user?.longestGlobalStreak ?? 0}
         moodData={moodData}
         monthlyData={monthlyData}
         todayMood={todayMood}
