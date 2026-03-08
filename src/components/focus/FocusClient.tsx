@@ -7,7 +7,6 @@ import { toggleTask } from "@/app/actions/tasks";
 import {
     Dialog,
     DialogContent,
-    DialogHeader,
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
@@ -52,12 +51,14 @@ export default function FocusClient({ initialTasks = [] }: { initialTasks?: Task
         if (ambient === "none") {
             audio.pause();
         } else {
+            // Play ambient if they select it (so they can hear it) or if timer is running.
+            // Pause ONLY if the timer is explicitly paused.
             audio.src = AMBIENT_SOUNDS[ambient];
             audio.volume = volume;
-            if (timer.timerState === "focus" && !timer.isPaused) {
-                audio.play().catch(console.warn);
-            } else {
+            if (timer.isPaused && timer.timerState !== "idle") {
                 audio.pause();
+            } else {
+                audio.play().catch(console.warn);
             }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -106,46 +107,68 @@ export default function FocusClient({ initialTasks = [] }: { initialTasks?: Task
                 {/* Settings Trigger */}
                 <Dialog>
                     <DialogTrigger asChild>
-                        <button title="Ajustes de Focus" className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-white/5 transition-smooth">
-                            <Settings2 className="h-5 w-5 text-zinc-400" />
+                        <button title="Ajustes de Focus" className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-white/10 bg-white/5 transition-all text-zinc-300">
+                            <Settings2 className="h-5 w-5" />
                         </button>
                     </DialogTrigger>
-                    <DialogContent className="bg-zinc-900 border border-white/10 text-zinc-100 sm:max-w-[425px]">
-                        <DialogHeader>
-                            <DialogTitle className="text-zinc-100">Focus Settings</DialogTitle>
-                        </DialogHeader>
-                        <div className="py-6 space-y-6">
-                            <div className="space-y-2">
-                                <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Duración de Focus (min)</label>
+                    <DialogContent className="bg-zinc-950 border border-white/10 text-zinc-100 sm:max-w-[480px] rounded-2xl p-0 overflow-hidden shadow-2xl">
+                        <div className="p-6 bg-white/5 border-b border-white/5">
+                            <DialogTitle className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                                <Settings2 className="h-5 w-5 text-zinc-400" />
+                                Configuración de Sanctuary
+                            </DialogTitle>
+                        </div>
+                        <div className="p-6 space-y-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-sm font-semibold text-zinc-300">Tiempo de Focus</label>
+                                    <span className="text-xs text-zinc-500 font-mono">{timer.settings.focusDuration} min</span>
+                                </div>
                                 <input
-                                    type="number"
-                                    min={1}
+                                    type="range"
+                                    min={5}
                                     max={120}
+                                    step={5}
                                     value={timer.settings.focusDuration}
                                     onChange={(e) => timer.updateSettings({ focusDuration: Number(e.target.value) })}
-                                    className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-zinc-700 outline-none"
+                                    className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-violet-500"
                                 />
+                                <div className="flex justify-between text-xs text-zinc-600 font-medium">
+                                    <span>5m</span>
+                                    <span>60m</span>
+                                    <span>120m</span>
+                                </div>
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Recreo Corto (min)</label>
+
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-sm font-semibold text-zinc-300">Descanso Corto</label>
+                                    <span className="text-xs text-zinc-500 font-mono">{timer.settings.shortBreakDuration} min</span>
+                                </div>
                                 <input
-                                    type="number"
+                                    type="range"
                                     min={1}
                                     max={30}
+                                    step={1}
                                     value={timer.settings.shortBreakDuration}
                                     onChange={(e) => timer.updateSettings({ shortBreakDuration: Number(e.target.value) })}
-                                    className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-zinc-700 outline-none"
+                                    className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Recreo Largo (min)</label>
+
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-sm font-semibold text-zinc-300">Descanso Largo</label>
+                                    <span className="text-xs text-zinc-500 font-mono">{timer.settings.longBreakDuration} min</span>
+                                </div>
                                 <input
-                                    type="number"
+                                    type="range"
                                     min={5}
                                     max={60}
+                                    step={5}
                                     value={timer.settings.longBreakDuration}
                                     onChange={(e) => timer.updateSettings({ longBreakDuration: Number(e.target.value) })}
-                                    className="w-full bg-zinc-950 border border-white/10 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-zinc-700 outline-none"
+                                    className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
                                 />
                             </div>
                         </div>
@@ -181,20 +204,23 @@ export default function FocusClient({ initialTasks = [] }: { initialTasks?: Task
                     </div>
 
                     {/* Task Selector */}
-                    {timer.timerState === "idle" && pendingTasks.length > 0 && (
+                    {timer.timerState === "idle" && (
                         <div className="mb-4">
                             <select
                                 title="Seleccionar tarea"
                                 value={selectedTaskId || ""}
                                 onChange={(e) => setSelectedTaskId(e.target.value || null)}
-                                className="bg-transparent border border-white/10 rounded-full px-4 py-1.5 text-xs text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-700 hover:bg-white/5 transition-smooth appearance-none cursor-pointer text-center max-w-[200px] truncate"
+                                className="bg-zinc-900/50 border border-white/10 rounded-full px-5 py-2 text-sm text-zinc-300 focus:outline-none focus:ring-2 focus:ring-violet-500 hover:bg-white/10 transition-all appearance-none cursor-pointer text-center max-w-[250px] truncate shadow-lg"
                             >
                                 <option value="" className="bg-zinc-900 text-zinc-400">Sin tarea vinculada</option>
                                 {pendingTasks.map(t => (
                                     <option key={t.id} value={t.id} className="bg-zinc-900 text-zinc-100">
-                                        {t.title}
+                                        Vincular: {t.title}
                                     </option>
                                 ))}
+                                {pendingTasks.length === 0 && (
+                                    <option disabled className="bg-zinc-900 text-zinc-500">No hay tareas pendientes</option>
+                                )}
                             </select>
                         </div>
                     )}
