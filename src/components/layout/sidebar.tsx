@@ -14,7 +14,6 @@ import {
   LogOut,
   User,
   Shield,
-  Timer,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
@@ -42,11 +41,6 @@ const navItems = [
     href: "/finances",
     icon: Wallet,
     comingSoon: true,
-  },
-  {
-    label: "Focus",
-    href: "/focus",
-    icon: Timer,
   },
   {
     label: "Gym",
