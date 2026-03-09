@@ -6,7 +6,7 @@ interface CoreOfflineDB extends DBSchema {
         key: string;
         value: {
             id: string;
-            type: "TOGGLE_HABIT" | "TOGGLE_TASK" | "CREATE_TASK" | "DELETE_TASK";
+            type: "TOGGLE_HABIT" | "TOGGLE_TASK" | "CREATE_TASK" | "DELETE_TASK" | "CREATE_ROUTINE" | "DELETE_ROUTINE" | "LOG_WORKOUT";
             payload: Record<string, string>;
             timestamp: number;
         };

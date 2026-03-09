@@ -28,9 +28,11 @@ model User {
   longestGlobalStreak  Int @default(0)
   lastGlobalStreakDate DateTime? @db.Date
   unlockedAchievements Achievement[]
+  // Gym
+  workoutRoutines    WorkoutRoutine[]
+  workoutLogs        WorkoutLog[]
   // Future relations:
   // expenses     Expense[]
-  // workouts     Workout[]
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 
@@ -122,6 +124,76 @@ model Achievement {
 }
 
 // ============================================
+// GYM MODELS
+// ============================================
+
+model WorkoutRoutine {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  color       String       @default("#f97316") // orange
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercises   Exercise[]
+  logs        WorkoutLog[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([userId])
+  @@map("workout_routines")
+}
+
+model Exercise {
+  id        String         @id @default(cuid())
+  name      String
+  category  String         @default("general") // chest, back, legs, shoulders, arms, core, cardio
+  order     Int            @default(0)
+  routineId String
+  routine   WorkoutRoutine @relation(fields: [routineId], references: [id], onDelete: Cascade)
+  sets      ExerciseSet[]
+  createdAt DateTime       @default(now())
+
+  @@index([routineId])
+  @@map("exercises")
+}
+
+model WorkoutLog {
+  id               String         @id @default(cuid())
+  date             DateTime       @db.Date
+  notes            String?
+  rpe              Int?           // Rate of Perceived Exertion 1-10
+  durationMinutes  Int?
+  progressPhotoUrl String?
+  routineId        String
+  routine          WorkoutRoutine @relation(fields: [routineId], references: [id], onDelete: Cascade)
+  userId           String
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sets             ExerciseSet[]
+  createdAt        DateTime       @default(now())
+
+  @@index([userId])
+  @@index([date])
+  @@index([routineId])
+  @@map("workout_logs")
+}
+
+model ExerciseSet {
+  id           String     @id @default(cuid())
+  setNumber    Int
+  reps         Int?
+  weight       Float?     // kg
+  durationSec  Int?       // for timed exercises (planks, etc.)
+  exerciseId   String
+  exercise     Exercise   @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  workoutLogId String
+  workoutLog   WorkoutLog @relation(fields: [workoutLogId], references: [id], onDelete: Cascade)
+
+  @@index([workoutLogId])
+  @@index([exerciseId])
+  @@map("exercise_sets")
+}
+
+// ============================================
 // FUTURE MODELS (uncomment when ready)
 // ============================================
 
@@ -141,19 +213,3 @@ model Achievement {
 //   @@map("expenses")
 // }
 
-// model Workout {
-//   id          String   @id @default(cuid())
-//   userId      String
-//   date        DateTime @db.Date
-//   type        String   // strength | cardio | flexibility
-//   duration    Int      // minutes
-//   exercises   Json?    // array of { name, sets, reps, weight }
-//   notes       String?
-//   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-//   createdAt   DateTime @default(now())
-//   updatedAt   DateTime @updatedAt
-//
-//   @@index([userId])
-//   @@index([date])
-//   @@map("workouts")
-// }

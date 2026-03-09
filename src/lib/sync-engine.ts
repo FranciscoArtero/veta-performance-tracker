@@ -1,6 +1,7 @@
 import { getAllPendingOps, deletePendingOp } from "./offline-db";
 import { toggleHabitLog } from "@/app/actions/habits";
 import { toggleTask, createTask, deleteTask } from "@/app/actions/tasks";
+import { createRoutine, deleteRoutine, logWorkout } from "@/app/actions/gym";
 
 /**
  * Replay all queued offline operations against the server.
@@ -26,16 +27,36 @@ export async function flushPendingOps(): Promise<{ synced: number; failed: numbe
                 case "DELETE_TASK":
                     await deleteTask(op.payload.taskId);
                     break;
+                case "CREATE_ROUTINE":
+                    await createRoutine(
+                        op.payload.name,
+                        op.payload.description || null,
+                        op.payload.color,
+                        JSON.parse(op.payload.exercises || "[]"),
+                    );
+                    break;
+                case "DELETE_ROUTINE":
+                    await deleteRoutine(op.payload.routineId);
+                    break;
+                case "LOG_WORKOUT":
+                    await logWorkout({
+                        routineId: op.payload.routineId,
+                        dateISO: op.payload.dateISO,
+                        rpe: op.payload.rpe ? Number(op.payload.rpe) : undefined,
+                        notes: op.payload.notes || undefined,
+                        sets: JSON.parse(op.payload.sets || "[]"),
+                    });
+                    break;
             }
             await deletePendingOp(op.id);
             synced++;
         } catch (err) {
             console.warn("[SyncEngine] Failed to sync op:", op.id, err);
             failed++;
-            // Leave the op in the queue for next attempt
         }
     }
 
     console.log(`[SyncEngine] Flush complete: ${synced} synced, ${failed} failed`);
     return { synced, failed };
 }
+

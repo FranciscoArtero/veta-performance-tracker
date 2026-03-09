@@ -47,7 +47,6 @@ const navItems = [
     label: "Gym",
     href: "/gym",
     icon: Dumbbell,
-    comingSoon: true,
   },
   {
     label: "Perfil",
