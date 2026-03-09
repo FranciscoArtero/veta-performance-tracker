@@ -93,129 +93,131 @@ export function CreateRoutineDialog({ open, onClose }: Props) {
                         className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
                     />
 
-                    {/* Dialog */}
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        className="fixed inset-x-4 top-[5%] md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 z-50 w-auto md:w-full md:max-w-lg rounded-2xl border border-border/50 bg-card p-6 shadow-2xl max-h-[90vh] overflow-y-auto"
-                    >
-                        {/* Header */}
-                        <div className="flex items-center justify-between mb-5">
-                            <h2 className="text-lg font-bold flex items-center gap-2">
-                                <Dumbbell className="h-5 w-5 text-orange-400" />
-                                Nueva Rutina
-                            </h2>
-                            <button onClick={resetAndClose} className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5">
-                                <X className="h-4 w-4" />
-                            </button>
-                        </div>
-
-                        <div className="space-y-4">
-                            {/* Name */}
-                            <div>
-                                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Nombre</label>
-                                <input
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    placeholder="Ej: Push Day, Upper Body..."
-                                    className="w-full rounded-lg border border-border/50 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/30"
-                                />
+                    {/* Dialog — centered with flexbox */}
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="pointer-events-auto w-full max-w-lg rounded-2xl border border-border/50 bg-card p-6 shadow-2xl max-h-[85vh] overflow-y-auto"
+                        >
+                            {/* Header */}
+                            <div className="flex items-center justify-between mb-5">
+                                <h2 className="text-lg font-bold flex items-center gap-2">
+                                    <Dumbbell className="h-5 w-5 text-orange-400" />
+                                    Nueva Rutina
+                                </h2>
+                                <button onClick={resetAndClose} className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5">
+                                    <X className="h-4 w-4" />
+                                </button>
                             </div>
 
-                            {/* Description */}
-                            <div>
-                                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Descripción (opcional)</label>
-                                <input
-                                    value={description}
-                                    onChange={(e) => setDescription(e.target.value)}
-                                    placeholder="Ej: Pecho, hombros y tríceps"
-                                    className="w-full rounded-lg border border-border/50 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/30"
-                                />
-                            </div>
-
-                            {/* Color */}
-                            <div>
-                                <label className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1">
-                                    <Palette className="h-3 w-3" /> Color
-                                </label>
-                                <div className="flex gap-2">
-                                    {COLORS.map((c) => (
-                                        <button
-                                            key={c}
-                                            onClick={() => setColor(c)}
-                                            className={`h-7 w-7 rounded-full transition-all ${color === c ? "ring-2 ring-offset-2 ring-offset-card scale-110" : "opacity-60 hover:opacity-100"}`}
-                                            style={{ backgroundColor: c }}
-                                        />
-                                    ))}
+                            <div className="space-y-4">
+                                {/* Name */}
+                                <div>
+                                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Nombre</label>
+                                    <input
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        placeholder="Ej: Push Day, Upper Body..."
+                                        className="w-full rounded-lg border border-border/50 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/30"
+                                    />
                                 </div>
-                            </div>
 
-                            {/* Exercises */}
-                            <div>
-                                <label className="text-xs font-medium text-muted-foreground mb-2 block">
-                                    Ejercicios ({exercises.length})
-                                </label>
+                                {/* Description */}
+                                <div>
+                                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Descripción (opcional)</label>
+                                    <input
+                                        value={description}
+                                        onChange={(e) => setDescription(e.target.value)}
+                                        placeholder="Ej: Pecho, hombros y tríceps"
+                                        className="w-full rounded-lg border border-border/50 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/30"
+                                    />
+                                </div>
 
-                                {exercises.length > 0 && (
-                                    <div className="space-y-1.5 mb-3">
-                                        {exercises.map((ex, i) => (
-                                            <div
-                                                key={i}
-                                                className="flex items-center gap-2 rounded-lg bg-black/5 dark:bg-white/5 px-3 py-2"
-                                            >
-                                                <span className="text-sm flex-1">{ex.name}</span>
-                                                <span className="text-[10px] text-muted-foreground bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded">
-                                                    {CATEGORIES.find(c => c.value === ex.category)?.label || ex.category}
-                                                </span>
-                                                <button onClick={() => removeExercise(i)} className="text-muted-foreground hover:text-red-400">
-                                                    <Trash2 className="h-3 w-3" />
-                                                </button>
-                                            </div>
+                                {/* Color */}
+                                <div>
+                                    <label className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1">
+                                        <Palette className="h-3 w-3" /> Color
+                                    </label>
+                                    <div className="flex gap-2">
+                                        {COLORS.map((c) => (
+                                            <button
+                                                key={c}
+                                                onClick={() => setColor(c)}
+                                                className={`h-7 w-7 rounded-full transition-all ${color === c ? "ring-2 ring-offset-2 ring-offset-card scale-110" : "opacity-60 hover:opacity-100"}`}
+                                                style={{ backgroundColor: c }}
+                                            />
                                         ))}
                                     </div>
-                                )}
-
-                                {/* Add exercise row */}
-                                <div className="flex gap-2">
-                                    <input
-                                        value={newExName}
-                                        onChange={(e) => setNewExName(e.target.value)}
-                                        placeholder="Nombre del ejercicio"
-                                        onKeyDown={(e) => e.key === "Enter" && addExercise()}
-                                        className="flex-1 rounded-lg border border-border/50 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/30"
-                                    />
-                                    <select
-                                        value={newExCategory}
-                                        onChange={(e) => setNewExCategory(e.target.value)}
-                                        className="rounded-lg border border-border/50 bg-background px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500/30"
-                                    >
-                                        {CATEGORIES.map((cat) => (
-                                            <option key={cat.value} value={cat.value}>
-                                                {cat.emoji} {cat.label}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <button
-                                        onClick={addExercise}
-                                        disabled={!newExName.trim()}
-                                        className="shrink-0 flex items-center justify-center h-9 w-9 rounded-lg bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 disabled:opacity-40 transition-all"
-                                    >
-                                        <Plus className="h-4 w-4" />
-                                    </button>
                                 </div>
-                            </div>
 
-                            {/* Submit */}
-                            <button
-                                onClick={handleSubmit}
-                                disabled={!name.trim() || exercises.length === 0 || isPending}
-                                className="w-full rounded-lg bg-gradient-to-r from-orange-500 to-red-500 py-2.5 text-sm font-medium text-white transition-all hover:from-orange-600 hover:to-red-600 disabled:opacity-40"
-                            >
-                                {isPending ? "Creando…" : "Crear Rutina"}
-                            </button>
-                        </div>
-                    </motion.div>
+                                {/* Exercises */}
+                                <div>
+                                    <label className="text-xs font-medium text-muted-foreground mb-2 block">
+                                        Ejercicios ({exercises.length})
+                                    </label>
+
+                                    {exercises.length > 0 && (
+                                        <div className="space-y-1.5 mb-3">
+                                            {exercises.map((ex, i) => (
+                                                <div
+                                                    key={i}
+                                                    className="flex items-center gap-2 rounded-lg bg-black/5 dark:bg-white/5 px-3 py-2"
+                                                >
+                                                    <span className="text-sm flex-1">{ex.name}</span>
+                                                    <span className="text-[10px] text-muted-foreground bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded">
+                                                        {CATEGORIES.find(c => c.value === ex.category)?.label || ex.category}
+                                                    </span>
+                                                    <button onClick={() => removeExercise(i)} className="text-muted-foreground hover:text-red-400">
+                                                        <Trash2 className="h-3 w-3" />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* Add exercise row */}
+                                    <div className="flex gap-2">
+                                        <input
+                                            value={newExName}
+                                            onChange={(e) => setNewExName(e.target.value)}
+                                            placeholder="Nombre del ejercicio"
+                                            onKeyDown={(e) => e.key === "Enter" && addExercise()}
+                                            className="flex-1 rounded-lg border border-border/50 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/30"
+                                        />
+                                        <select
+                                            value={newExCategory}
+                                            onChange={(e) => setNewExCategory(e.target.value)}
+                                            className="rounded-lg border border-border/50 bg-background px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500/30"
+                                        >
+                                            {CATEGORIES.map((cat) => (
+                                                <option key={cat.value} value={cat.value}>
+                                                    {cat.emoji} {cat.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <button
+                                            onClick={addExercise}
+                                            disabled={!newExName.trim()}
+                                            className="shrink-0 flex items-center justify-center h-9 w-9 rounded-lg bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 disabled:opacity-40 transition-all"
+                                        >
+                                            <Plus className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Submit */}
+                                <button
+                                    onClick={handleSubmit}
+                                    disabled={!name.trim() || exercises.length === 0 || isPending}
+                                    className="w-full rounded-lg bg-gradient-to-r from-orange-500 to-red-500 py-2.5 text-sm font-medium text-white transition-all hover:from-orange-600 hover:to-red-600 disabled:opacity-40"
+                                >
+                                    {isPending ? "Creando…" : "Crear Rutina"}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
                 </>
             )}
         </AnimatePresence>
