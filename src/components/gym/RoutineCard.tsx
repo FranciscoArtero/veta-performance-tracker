@@ -19,17 +19,6 @@ type Props = {
     onStart: () => void;
 };
 
-const categoryIcons: Record<string, string> = {
-    chest: "🏋️",
-    back: "🔙",
-    legs: "🦵",
-    shoulders: "💪",
-    arms: "💪",
-    core: "🎯",
-    cardio: "🏃",
-    general: "⚡",
-};
-
 export function RoutineCard({ routine, onStart }: Props) {
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
@@ -47,8 +36,6 @@ export function RoutineCard({ routine, onStart }: Props) {
             router.refresh();
         });
     }
-
-    const categories = Array.from(new Set(routine.exercises.map(e => e.category)));
 
     return (
         <div className="group relative rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm overflow-hidden transition-all hover:border-border hover:shadow-lg">
@@ -72,23 +59,19 @@ export function RoutineCard({ routine, onStart }: Props) {
                     <button
                         onClick={handleDelete}
                         disabled={isPending}
+                        title="Eliminar rutina"
                         className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-red-500/10 text-muted-foreground hover:text-red-400"
                     >
                         <Trash2 className="h-3.5 w-3.5" />
                     </button>
                 </div>
 
-                {/* Category badges */}
-                <div className="flex flex-wrap gap-1.5">
-                    {categories.map((cat) => (
-                        <span
-                            key={cat}
-                            className="inline-flex items-center gap-1 rounded-md bg-black/5 dark:bg-white/5 px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
-                        >
-                            {categoryIcons[cat] || "⚡"} {cat}
-                        </span>
-                    ))}
-                </div>
+                {/* Exercise names */}
+                {routine.exercises.length > 0 && (
+                    <p className="text-xs text-muted-foreground line-clamp-2">
+                        {routine.exercises.map(e => e.name).join(" · ")}
+                    </p>
+                )}
 
                 {/* Stats */}
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">

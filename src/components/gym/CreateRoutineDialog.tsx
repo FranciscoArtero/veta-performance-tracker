@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Plus, Trash2, Dumbbell, Palette } from "lucide-react";
+import { X, Plus, Trash2, Dumbbell } from "lucide-react";
 import { createRoutine } from "@/app/actions/gym";
 import { useNetworkStatus } from "@/components/providers/NetworkStatusProvider";
 import { addPendingOp } from "@/lib/offline-db";
@@ -13,38 +13,24 @@ type Props = {
     onClose: () => void;
 };
 
-const CATEGORIES = [
-    { value: "chest", label: "Pecho", emoji: "🏋️" },
-    { value: "back", label: "Espalda", emoji: "🔙" },
-    { value: "legs", label: "Piernas", emoji: "🦵" },
-    { value: "shoulders", label: "Hombros", emoji: "💪" },
-    { value: "arms", label: "Brazos", emoji: "💪" },
-    { value: "core", label: "Core", emoji: "🎯" },
-    { value: "cardio", label: "Cardio", emoji: "🏃" },
-    { value: "general", label: "General", emoji: "⚡" },
-];
-
 const COLORS = [
     "#f97316", "#ef4444", "#8b5cf6", "#06b6d4",
     "#10b981", "#f59e0b", "#ec4899", "#6366f1",
 ];
 
-type ExerciseEntry = { name: string; category: string };
-
 export function CreateRoutineDialog({ open, onClose }: Props) {
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
     const [color, setColor] = useState(COLORS[0]);
-    const [exercises, setExercises] = useState<ExerciseEntry[]>([]);
+    const [exercises, setExercises] = useState<string[]>([]);
     const [newExName, setNewExName] = useState("");
-    const [newExCategory, setNewExCategory] = useState("general");
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
     const { isOnline, refreshPending } = useNetworkStatus();
 
     function addExercise() {
         if (!newExName.trim()) return;
-        setExercises([...exercises, { name: newExName.trim(), category: newExCategory }]);
+        setExercises([...exercises, newExName.trim()]);
         setNewExName("");
     }
 
@@ -60,11 +46,11 @@ export function CreateRoutineDialog({ open, onClose }: Props) {
                     name: name.trim(),
                     description: description || "",
                     color,
-                    exercises: JSON.stringify(exercises),
+                    exercises: JSON.stringify(exercises.map(name => ({ name, category: "general" }))),
                 });
                 await refreshPending();
             } else {
-                await createRoutine(name.trim(), description || null, color, exercises);
+                await createRoutine(name.trim(), description || null, color, exercises.map(name => ({ name, category: "general" })));
             }
             router.refresh();
             resetAndClose();
@@ -137,9 +123,7 @@ export function CreateRoutineDialog({ open, onClose }: Props) {
 
                                 {/* Color */}
                                 <div>
-                                    <label className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1">
-                                        <Palette className="h-3 w-3" /> Color
-                                    </label>
+                                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Color</label>
                                     <div className="flex gap-2">
                                         {COLORS.map((c) => (
                                             <button
@@ -165,10 +149,8 @@ export function CreateRoutineDialog({ open, onClose }: Props) {
                                                     key={i}
                                                     className="flex items-center gap-2 rounded-lg bg-black/5 dark:bg-white/5 px-3 py-2"
                                                 >
-                                                    <span className="text-sm flex-1">{ex.name}</span>
-                                                    <span className="text-[10px] text-muted-foreground bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded">
-                                                        {CATEGORIES.find(c => c.value === ex.category)?.label || ex.category}
-                                                    </span>
+                                                    <span className="text-xs text-muted-foreground w-5">{i + 1}.</span>
+                                                    <span className="text-sm flex-1">{ex}</span>
                                                     <button onClick={() => removeExercise(i)} className="text-muted-foreground hover:text-red-400">
                                                         <Trash2 className="h-3 w-3" />
                                                     </button>
@@ -182,21 +164,10 @@ export function CreateRoutineDialog({ open, onClose }: Props) {
                                         <input
                                             value={newExName}
                                             onChange={(e) => setNewExName(e.target.value)}
-                                            placeholder="Nombre del ejercicio"
+                                            placeholder="Ej: Press banca, Sentadilla..."
                                             onKeyDown={(e) => e.key === "Enter" && addExercise()}
                                             className="flex-1 rounded-lg border border-border/50 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/30"
                                         />
-                                        <select
-                                            value={newExCategory}
-                                            onChange={(e) => setNewExCategory(e.target.value)}
-                                            className="rounded-lg border border-border/50 bg-background px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500/30"
-                                        >
-                                            {CATEGORIES.map((cat) => (
-                                                <option key={cat.value} value={cat.value}>
-                                                    {cat.emoji} {cat.label}
-                                                </option>
-                                            ))}
-                                        </select>
                                         <button
                                             onClick={addExercise}
                                             disabled={!newExName.trim()}
