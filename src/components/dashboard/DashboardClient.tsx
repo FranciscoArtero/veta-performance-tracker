@@ -208,6 +208,10 @@ export function DashboardClient({
             : Math.round(habitScore * 100))
         : 100;
 
+    // ─── Pure ring percentages (independent, no mixing) ────
+    const habitsPercent = totalRequired > 0 ? Math.round((completedRequired / totalRequired) * 100) : 0;
+    const tasksPercent = totalTasksToday > 0 ? Math.round((completedTasksToday / totalTasksToday) * 100) : 0;
+
     const moodValues = moodData.filter((d) => d.mood > 0);
     const avgMood =
         moodValues.length > 0
@@ -285,9 +289,8 @@ export function DashboardClient({
                     <Card className={glassCard}>
                         <CardContent className="p-6 flex items-center justify-center">
                             <ActivityRings
-                                habits={progressPercent}
-                                tasks={totalTasksToday > 0 ? Math.round((completedTasksToday / totalTasksToday) * 100) : 0}
-                                mood={todayMood ? Math.round(((todayMood.mood + todayMood.motivation) / 20) * 100) : 0}
+                                habits={habitsPercent}
+                                tasks={tasksPercent}
                                 hydration={isHydrationEnabled ? (hydrationData?.percent ?? 0) : undefined}
                                 size={160}
                             />

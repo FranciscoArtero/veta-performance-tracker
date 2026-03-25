@@ -10,25 +10,24 @@ type RingData = {
 };
 
 type Props = {
-    habits: number;   // 0-100
-    tasks: number;    // 0-100
-    mood: number;     // 0-100
+    habits: number;     // 0-100 (pure: completed / total required)
+    tasks: number;      // 0-100 (pure: completed / total)
     hydration?: number; // 0-100, undefined = disabled
     size?: number;
 };
 
 /**
  * Concentric activity rings (Apple Watch style).
- * Outer → Inner: Habits (violet), Tasks (emerald), Mood (pink), Hydration (cyan).
+ * Outer → Inner: Habits (violet), Tasks (emerald), Hydration (cyan).
+ * Each ring represents a single, pure metric.
  */
-export function ActivityRings({ habits, tasks, mood, hydration, size = 160 }: Props) {
+export function ActivityRings({ habits, tasks, hydration, size = 160 }: Props) {
     const strokeWidth = 10;
     const gap = 4;
 
     const rings: RingData[] = [
         { value: habits, color: "#8b5cf6", label: "Hábitos" },
         { value: tasks, color: "#10b981", label: "Tareas" },
-        { value: mood, color: "#ec4899", label: "Mood" },
     ];
 
     if (hydration !== undefined) {
