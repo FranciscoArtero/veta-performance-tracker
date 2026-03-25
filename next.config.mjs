@@ -5,6 +5,7 @@ const withPWA = withPWAInit({
     disable: process.env.NODE_ENV === "development",
     cacheOnFrontEndNav: true,
     reloadOnOnline: false,
+    customWorkerSrc: "worker",
 });
 
 /** @type {import('next').NextConfig} */

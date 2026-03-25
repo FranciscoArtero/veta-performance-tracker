@@ -9,6 +9,7 @@ import {
   getMentalStateWeek,
   getTodayMentalState,
 } from "@/app/actions/mental-state";
+import { getTodayHydration } from "@/app/actions/hydration";
 import { DashboardClient } from "@/components/dashboard/DashboardClient";
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -25,9 +26,19 @@ export default async function DashboardPage() {
       getTodayTasks(),
       prisma.user.findUnique({
         where: { id: userId },
-        select: { currentGlobalStreak: true, longestGlobalStreak: true }
+        select: {
+          currentGlobalStreak: true,
+          longestGlobalStreak: true,
+          isHydrationEnabled: true,
+          hydrationGoalMl: true,
+        }
       })
     ]);
+
+    // Fetch hydration data if enabled
+    const hydrationData = user?.isHydrationEnabled
+      ? await getTodayHydration()
+      : null;
 
     // Use Prisma's native currentStreak for habits
     const streaks: Record<string, number> = {};
@@ -66,6 +77,8 @@ export default async function DashboardPage() {
         todayMood={todayMood}
         monthLabel={monthLabel}
         tasks={tasks.map((t) => ({ id: t.id, title: t.title, completed: t.completed }))}
+        isHydrationEnabled={user?.isHydrationEnabled ?? false}
+        hydrationData={hydrationData}
       />
     );
   } catch (error: unknown) {

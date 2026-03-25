@@ -31,6 +31,10 @@ model User {
   // Gym
   workoutRoutines    WorkoutRoutine[]
   workoutLogs        WorkoutLog[]
+  // Hydration
+  isHydrationEnabled Boolean       @default(false)
+  hydrationGoalMl    Int           @default(2000)
+  hydrationLogs      HydrationLog[]
   // Future relations:
   // expenses     Expense[]
   createdAt          DateTime      @default(now())
@@ -191,6 +195,24 @@ model ExerciseSet {
   @@index([workoutLogId])
   @@index([exerciseId])
   @@map("exercise_sets")
+}
+
+// ============================================
+// HYDRATION MODELS
+// ============================================
+
+model HydrationLog {
+  id        String   @id @default(cuid())
+  userId    String
+  date      DateTime @db.Date
+  amountMl  Int      // ml added in this entry
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([date])
+  @@index([userId, date])
+  @@map("hydration_logs")
 }
 
 // ============================================

@@ -3,7 +3,8 @@
 import { useState, useTransition } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { useTheme } from "next-themes";
-import { User, Lock, Globe, LogOut, Shield, Loader2, Check, AlertTriangle, Palette } from "lucide-react";
+import { User, Lock, Globe, LogOut, Shield, Loader2, Check, AlertTriangle, Palette, Droplet } from "lucide-react";
+import { toggleHydrationModule, updateHydrationGoal } from "@/app/actions/hydration";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { changePassword, updateTimezone } from "@/app/actions/profile";
@@ -32,6 +33,8 @@ type Props = {
         mustChangePassword: boolean;
         createdAt: string;
         achievements: Achievement[];
+        isHydrationEnabled: boolean;
+        hydrationGoalMl: number;
     };
 };
 
@@ -46,6 +49,9 @@ export function ProfileClient({ profile }: Props) {
     const [tzSaved, setTzSaved] = useState(false);
     const [isPending, startTransition] = useTransition();
     const { theme, setTheme } = useTheme();
+    const [hydrationEnabled, setHydrationEnabled] = useState(profile.isHydrationEnabled);
+    const [hydrationGoal, setHydrationGoal] = useState(profile.hydrationGoalMl);
+    const [hydrationSaved, setHydrationSaved] = useState(false);
 
     function handleChangePassword(e: React.FormEvent) {
         e.preventDefault();
@@ -303,6 +309,93 @@ export function ProfileClient({ profile }: Props) {
                                 );
                             })}
                         </div>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* Hydration Module */}
+            {!profile.mustChangePassword && (
+                <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+                    <CardHeader className="pb-3">
+                        <CardTitle className="flex items-center gap-2 text-base">
+                            <Droplet className="h-4 w-4 text-cyan-400" />
+                            Hidratación
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {/* Toggle */}
+                        <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                                <p className="text-sm font-medium">Seguimiento de Hidratación</p>
+                                <p className="text-xs text-muted-foreground">Activar el anillo de agua en el Dashboard</p>
+                            </div>
+                            <button
+                                role="switch"
+                                aria-checked={hydrationEnabled}
+                                aria-label="Activar seguimiento de hidratación"
+                                title="Activar seguimiento de hidratación"
+                                onClick={() => {
+                                    const next = !hydrationEnabled;
+                                    setHydrationEnabled(next);
+                                    startTransition(async () => {
+                                        await toggleHydrationModule(next);
+                                    });
+                                }}
+                                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                                    hydrationEnabled ? "bg-cyan-500" : "bg-zinc-700"
+                                }`}
+                            >
+                                <span
+                                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                                        hydrationEnabled ? "translate-x-5" : "translate-x-0"
+                                    }`}
+                                />
+                            </button>
+                        </div>
+
+                        {/* Goal input — only when enabled */}
+                        {hydrationEnabled && (
+                            <div className="space-y-2 pt-2 border-t border-border/30">
+                                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                    Objetivo diario (ml)
+                                </label>
+                                <div className="flex items-center gap-3">
+                                    <input
+                                        type="number"
+                                        min={500}
+                                        max={10000}
+                                        step={250}
+                                        value={hydrationGoal}
+                                        placeholder="2000"
+                                        aria-label="Objetivo diario de hidratación en ml"
+                                        onChange={(e) => {
+                                            const val = parseInt(e.target.value) || 2000;
+                                            setHydrationGoal(val);
+                                            setHydrationSaved(false);
+                                        }}
+                                        onBlur={() => {
+                                            if (hydrationGoal >= 500 && hydrationGoal <= 10000) {
+                                                startTransition(async () => {
+                                                    await updateHydrationGoal(hydrationGoal);
+                                                    setHydrationSaved(true);
+                                                    setTimeout(() => setHydrationSaved(false), 2000);
+                                                });
+                                            }
+                                        }}
+                                        className="w-32 rounded-lg border border-border/50 bg-background/50 px-3 py-2 text-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500/50 transition-smooth"
+                                    />
+                                    <span className="text-sm text-muted-foreground">ml</span>
+                                    {hydrationSaved && (
+                                        <span className="text-xs text-emerald-400 font-medium flex items-center gap-1">
+                                            <Check className="h-3 w-3" /> Guardado
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="text-xs text-muted-foreground/60">
+                                    Recomendado: 2000–3000 ml por día
+                                </p>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             )}

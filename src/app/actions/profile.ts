@@ -20,6 +20,8 @@ export async function getProfile() {
             createdAt: true,
             currentGlobalStreak: true,
             longestGlobalStreak: true,
+            isHydrationEnabled: true,
+            hydrationGoalMl: true,
             unlockedAchievements: {
                 select: {
                     id: true,

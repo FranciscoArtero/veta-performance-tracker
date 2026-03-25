@@ -11,11 +11,13 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ProgressRing } from "@/components/ui/progress-ring";
+import { ActivityRings } from "./ActivityRings";
 import { toggleHabitLog } from "@/app/actions/habits";
+import { addWater } from "@/app/actions/hydration";
 import { createTask, toggleTask, deleteTask } from "@/app/actions/tasks";
 import { MentalStateInput } from "./MentalStateInput";
 import { MonthlyHeatmap } from "./MonthlyHeatmap";
-import { Plus, Trash2, ListTodo } from "lucide-react";
+import { Plus, Trash2, ListTodo, Droplet } from "lucide-react";
 import { resolveHabitIcon } from "@/lib/habit-icons";
 import { CelebrationModal } from "@/components/gamification/CelebrationModal";
 import { useNetworkStatus } from "@/components/providers/NetworkStatusProvider";
@@ -75,6 +77,12 @@ type TaskItem = {
     completed: boolean;
 };
 
+type HydrationData = {
+    totalMl: number;
+    goalMl: number;
+    percent: number;
+};
+
 type Props = {
     habits: HabitWithLogs[];
     streaks: Record<string, number>;
@@ -85,6 +93,8 @@ type Props = {
     todayMood: { mood: number; motivation: number } | null;
     monthLabel: string;
     tasks: TaskItem[];
+    isHydrationEnabled: boolean;
+    hydrationData: HydrationData | null;
 };
 
 function getTodayISO() {
@@ -111,12 +121,16 @@ export function DashboardClient({
     todayMood,
     monthLabel,
     tasks: initialTasks,
+    isHydrationEnabled,
+    hydrationData: initialHydration,
 }: Props) {
     const [greeting, setGreeting] = useState("");
     const [todayFormatted, setTodayFormatted] = useState("");
     const [, startTransition] = useTransition();
     const [newTaskTitle, setNewTaskTitle] = useState("");
     const [unlockedAchievements, setUnlockedAchievements] = useState<string[]>([]);
+    const [hydrationData, setHydrationData] = useState<HydrationData | null>(initialHydration);
+    const [waterBounce, setWaterBounce] = useState(false);
     const [optimisticTasks, setOptimisticTasks] = useOptimistic(
         initialTasks,
         (state: TaskItem[], action: { type: string; task?: TaskItem; id?: string }) => {
@@ -259,106 +273,157 @@ export function DashboardClient({
                 </div>
             </motion.div>
 
-            {/* Stats Row with Progress Rings */}
+            {/* Stats Row with Activity Rings */}
             <motion.div
-                className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4"
+                className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-[auto_1fr]"
                 initial="hidden"
                 animate="visible"
                 variants={stagger}
             >
-                {/* Today's Progress */}
+                {/* Activity Rings Hero */}
                 <motion.div variants={fadeIn} custom={0}>
                     <Card className={glassCard}>
-                        <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                                <div className="space-y-1">
-                                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-                                        Hoy
-                                    </p>
-                                    <p className="text-2xl font-bold">
-                                        {completedRequired}/{totalRequired}
-                                    </p>
-                                </div>
-                                <ProgressRing
-                                    value={progressPercent}
-                                    size={48}
-                                    strokeWidth={4}
-                                    color="#8b5cf6"
-                                    label={`${progressPercent}%`}
-                                />
-                            </div>
+                        <CardContent className="p-6 flex items-center justify-center">
+                            <ActivityRings
+                                habits={progressPercent}
+                                tasks={totalTasksToday > 0 ? Math.round((completedTasksToday / totalTasksToday) * 100) : 0}
+                                mood={todayMood ? Math.round(((todayMood.mood + todayMood.motivation) / 20) * 100) : 0}
+                                hydration={isHydrationEnabled ? (hydrationData?.percent ?? 0) : undefined}
+                                size={160}
+                            />
                         </CardContent>
                     </Card>
                 </motion.div>
 
-                {/* Best Streak */}
-                <motion.div variants={fadeIn} custom={1}>
-                    <Card className={glassCard}>
-                        <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                                <div className="space-y-1">
-                                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-                                        Racha Máxima
-                                    </p>
-                                    <div className="flex items-baseline gap-1">
-                                        <p className="text-2xl font-bold">{longestGlobalStreak}</p>
-                                        <span className="text-xs text-muted-foreground">días</span>
+                {/* Stat Cards Grid */}
+                <div className="grid grid-cols-2 gap-3 md:gap-4">
+                    {/* Today's Progress */}
+                    <motion.div variants={fadeIn} custom={0}>
+                        <Card className={glassCard}>
+                            <CardContent className="p-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-1">
+                                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                                            Hoy
+                                        </p>
+                                        <p className="text-2xl font-bold">
+                                            {completedRequired}/{totalRequired}
+                                        </p>
                                     </div>
+                                    <ProgressRing
+                                        value={progressPercent}
+                                        size={48}
+                                        strokeWidth={4}
+                                        color="#8b5cf6"
+                                        label={`${progressPercent}%`}
+                                    />
                                 </div>
-                                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-500/10">
-                                    <Flame className="h-6 w-6 text-orange-400" />
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </motion.div>
+                            </CardContent>
+                        </Card>
+                    </motion.div>
 
-                {/* Mood */}
-                <motion.div variants={fadeIn} custom={2}>
-                    <Card className={glassCard}>
-                        <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                                <div className="space-y-1">
-                                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-                                        Mood
-                                    </p>
-                                    <div className="flex items-baseline gap-1">
-                                        <p className="text-2xl font-bold">{avgMood}</p>
-                                        <span className="text-xs text-muted-foreground">/10</span>
+                    {/* Best Streak */}
+                    <motion.div variants={fadeIn} custom={1}>
+                        <Card className={glassCard}>
+                            <CardContent className="p-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-1">
+                                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                                            Racha Máxima
+                                        </p>
+                                        <div className="flex items-baseline gap-1">
+                                            <p className="text-2xl font-bold">{longestGlobalStreak}</p>
+                                            <span className="text-xs text-muted-foreground">días</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-500/10">
+                                        <Flame className="h-6 w-6 text-orange-400" />
                                     </div>
                                 </div>
-                                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-500/10">
-                                    <Brain className="h-6 w-6 text-cyan-400" />
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </motion.div>
+                            </CardContent>
+                        </Card>
+                    </motion.div>
 
-                {/* Monthly */}
-                <motion.div variants={fadeIn} custom={3}>
-                    <Card className={glassCard}>
-                        <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                                <div className="space-y-1">
-                                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-                                        Este mes
-                                    </p>
-                                    <div className="flex items-baseline gap-1">
-                                        <p className="text-2xl font-bold">{monthlyPercent}%</p>
+                    {/* Mood */}
+                    <motion.div variants={fadeIn} custom={2}>
+                        <Card className={glassCard}>
+                            <CardContent className="p-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-1">
+                                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                                            Mood
+                                        </p>
+                                        <div className="flex items-baseline gap-1">
+                                            <p className="text-2xl font-bold">{avgMood}</p>
+                                            <span className="text-xs text-muted-foreground">/10</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-500/10">
+                                        <Brain className="h-6 w-6 text-cyan-400" />
                                     </div>
                                 </div>
-                                <ProgressRing
-                                    value={monthlyPercent}
-                                    size={48}
-                                    strokeWidth={4}
-                                    color="#10b981"
-                                    label={`${monthlyPercent}%`}
-                                />
-                            </div>
-                        </CardContent>
-                    </Card>
-                </motion.div>
+                            </CardContent>
+                        </Card>
+                    </motion.div>
+
+                    {/* Monthly / Hydration */}
+                    {isHydrationEnabled && hydrationData ? (
+                        <motion.div variants={fadeIn} custom={3}>
+                            <Card className={glassCard}>
+                                <CardContent className="p-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="space-y-1">
+                                            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                                                Agua
+                                            </p>
+                                            <div className="flex items-baseline gap-1">
+                                                <motion.p
+                                                    className="text-2xl font-bold"
+                                                    animate={waterBounce ? { scale: [1, 1.15, 1] } : {}}
+                                                    transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                                                >
+                                                    {hydrationData.totalMl}
+                                                </motion.p>
+                                                <span className="text-xs text-muted-foreground">/ {hydrationData.goalMl} ml</span>
+                                            </div>
+                                        </div>
+                                        <ProgressRing
+                                            value={hydrationData.percent}
+                                            size={48}
+                                            strokeWidth={4}
+                                            color="#06b6d4"
+                                            label={`${hydrationData.percent}%`}
+                                        />
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </motion.div>
+                    ) : (
+                        <motion.div variants={fadeIn} custom={3}>
+                            <Card className={glassCard}>
+                                <CardContent className="p-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="space-y-1">
+                                            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                                                Este mes
+                                            </p>
+                                            <div className="flex items-baseline gap-1">
+                                                <p className="text-2xl font-bold">{monthlyPercent}%</p>
+                                            </div>
+                                        </div>
+                                        <ProgressRing
+                                            value={monthlyPercent}
+                                            size={48}
+                                            strokeWidth={4}
+                                            color="#10b981"
+                                            label={`${monthlyPercent}%`}
+                                        />
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </motion.div>
+                    )}
+                </div>
             </motion.div>
 
             {/* Main Content Grid */}
@@ -669,6 +734,71 @@ export function DashboardClient({
                         </CardContent>
                     </Card>
                 </motion.div>
+
+                {/* Hydration Quick Actions — only if enabled */}
+                {isHydrationEnabled && hydrationData && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.55, duration: 0.4 }}
+                        className="lg:col-span-3"
+                    >
+                        <Card className={glassCard}>
+                            <CardHeader className="pb-3">
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="flex items-center gap-2 text-base">
+                                        <Droplet className="h-4 w-4 text-cyan-500 dark:text-cyan-400" />
+                                        Hidratación
+                                    </CardTitle>
+                                    <Badge variant="secondary" className="text-xs bg-cyan-500/10 text-cyan-400 border-cyan-500/20">
+                                        {hydrationData.totalMl} / {hydrationData.goalMl} ml
+                                    </Badge>
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex items-center gap-3">
+                                    {[250, 500].map((amount) => (
+                                        <motion.button
+                                            key={amount}
+                                            whileTap={{ scale: 0.9 }}
+                                            onClick={() => {
+                                                startTransition(async () => {
+                                                    const result = await addWater(amount);
+                                                    if (result && !('error' in result)) {
+                                                        setHydrationData(result);
+                                                        setWaterBounce(true);
+                                                        setTimeout(() => setWaterBounce(false), 500);
+                                                    }
+                                                });
+                                            }}
+                                            className="flex items-center gap-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 px-4 py-2.5 text-sm font-medium text-cyan-400 transition-smooth hover:bg-cyan-500/20 hover:border-cyan-500/30"
+                                        >
+                                            <Droplet className="h-4 w-4" />
+                                            +{amount}ml
+                                        </motion.button>
+                                    ))}
+                                </div>
+                                {/* Mini progress bar */}
+                                <div className="mt-3 h-2 rounded-full bg-white/5 overflow-hidden">
+                                    <motion.div
+                                        className="h-full rounded-full"
+                                        style={{
+                                            background: hydrationData.percent >= 100
+                                                ? "linear-gradient(90deg, #06b6d4, #22d3ee)"
+                                                : "linear-gradient(90deg, #0e7490, #06b6d4)",
+                                            boxShadow: hydrationData.percent >= 100
+                                                ? "0 0 12px #06b6d480, 0 0 24px #06b6d440"
+                                                : "none",
+                                        }}
+                                        initial={{ width: "0%" }}
+                                        animate={{ width: `${Math.min(hydrationData.percent, 100)}%` }}
+                                        transition={{ duration: 0.8, ease: "easeOut" }}
+                                    />
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </motion.div>
+                )}
             </div>
 
             {/* Monthly Heatmap */}

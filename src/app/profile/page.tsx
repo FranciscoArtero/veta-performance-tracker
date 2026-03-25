@@ -15,6 +15,8 @@ export default async function ProfilePage() {
                 mustChangePassword: profile.mustChangePassword,
                 createdAt: profile.createdAt.toISOString(),
                 achievements: profile.unlockedAchievements,
+                isHydrationEnabled: profile.isHydrationEnabled,
+                hydrationGoalMl: profile.hydrationGoalMl,
             }} />
         </div>
     );
