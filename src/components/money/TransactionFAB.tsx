@@ -141,7 +141,7 @@ export function TransactionFAB({ categories, onSaveOptimistic }: TransactionFABP
                                 const val = e.target.value.replace(/[^0-9]/g, "");
                                 setAmountStr(val);
                             }}
-                            className="bg-transparent text-center text-6xl md:text-7xl font-black text-white focus:outline-none w-auto max-w-[200px] placeholder:text-zinc-800 shrink-1"
+                            className="bg-transparent text-center text-6xl md:text-7xl font-black text-white focus:outline-none w-full min-w-0 placeholder:text-zinc-800 shrink-1"
                             autoFocus
                         />
                     </div>

@@ -14,15 +14,31 @@ export function BudgetRing({ spent, total, remaining }: BudgetRingProps) {
     const radius = (size - strokeWidth) / 2;
     const circumference = radius * 2 * Math.PI;
     
-    // Cap percentage at 100% for the ring stroke
     const percentage = total > 0 ? Math.min(1, spent / total) : 0;
     const strokeDashoffset = circumference - percentage * circumference;
 
     const isOverBudget = spent > total && total > 0;
 
+    function getRingColorClass(p: number) {
+        if (p < 0.25) return "stroke-emerald-400";
+        if (p < 0.50) return "stroke-emerald-500";
+        if (p < 0.75) return "stroke-yellow-400";
+        if (p < 0.90) return "stroke-orange-500";
+        return "stroke-red-500";
+    }
+
+    function getRingShadow(p: number) {
+        if (p < 0.25) return "drop-shadow(0 0 12px rgba(52,211,153,0.3))";
+        if (p < 0.50) return "drop-shadow(0 0 12px rgba(16,185,129,0.3))";
+        if (p < 0.75) return "drop-shadow(0 0 12px rgba(250,204,21,0.3))";
+        if (p < 0.90) return "drop-shadow(0 0 12px rgba(249,115,22,0.3))";
+        return "drop-shadow(0 0 16px rgba(239,68,68,0.5))";
+    }
+
     // Formatting currency
-    const formatMoney = (val: number) => 
-        new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(val);
+    const formatMoney = (val: number) => {
+        return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(val);
+    };
 
     return (
         <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
@@ -51,14 +67,10 @@ export function BudgetRing({ spent, total, remaining }: BudgetRingProps) {
                     fill="transparent"
                     strokeWidth={strokeWidth}
                     strokeLinecap="round"
-                    className={isOverBudget ? "stroke-red-500" : "stroke-cyan-500 dark:stroke-cyan-400"}
+                    className={`transition-colors duration-500 ${isOverBudget ? "stroke-red-500" : getRingColorClass(percentage)}`}
                     style={{
                         strokeDasharray: circumference,
-                        filter: isOverBudget 
-                            ? "drop-shadow(0 0 12px rgba(239,68,68,0.4))"
-                            : percentage >= 0.8 
-                                ? "drop-shadow(0 0 12px rgba(6,182,212,0.6))"
-                                : "none"
+                        filter: isOverBudget ? "drop-shadow(0 0 16px rgba(239,68,68,0.6))" : getRingShadow(percentage)
                     }}
                     initial={{ strokeDashoffset: circumference }}
                     animate={{ strokeDashoffset }}
