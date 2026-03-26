@@ -117,3 +117,82 @@ export async function createTransaction({
         return { error: "Failed to create transaction" };
     }
 }
+
+/**
+ * Fetch all transactions for a given month, ordered chronologically (newest first). 
+ */
+export async function getTransactions(month: Date) {
+    const { id: userId } = await requireAuth();
+
+    const startOfMonth = new Date(Date.UTC(month.getFullYear(), month.getMonth(), 1));
+    const endOfMonth = new Date(Date.UTC(month.getFullYear(), month.getMonth() + 1, 0, 23, 59, 59, 999));
+
+    return prisma.transaction.findMany({
+        where: {
+            userId,
+            date: {
+                gte: startOfMonth,
+                lte: endOfMonth,
+            },
+        },
+        include: {
+            category: true,
+        },
+        orderBy: {
+            date: "desc",
+        },
+    });
+}
+
+/**
+ * Atomically delete a transaction and decrement the associated Budget's actualAmount.
+ */
+export async function deleteTransaction(transactionId: string) {
+    const { id: userId } = await requireAuth();
+
+    try {
+        await prisma.$transaction(async (tx) => {
+            // 1. Fetch transaction to verify ownership and get amounts/dates
+            const transaction = await tx.transaction.findUnique({
+                where: { id: transactionId },
+            });
+
+            if (!transaction || transaction.userId !== userId) {
+                throw new Error("Transaction not found or unauthorized");
+            }
+
+            // 2. Delete the transaction
+            await tx.transaction.delete({
+                where: { id: transactionId },
+            });
+
+            // 3. Find the parent budget month
+            const budgetMonth = new Date(Date.UTC(transaction.date.getUTCFullYear(), transaction.date.getUTCMonth(), 1));
+
+            // 4. Decrement the budget actualAmount
+            // (We assume it exists if the transaction exists, but updateMany is safer if it somehow doesn't)
+            await tx.budget.updateMany({
+                where: {
+                    userId,
+                    categoryId: transaction.categoryId,
+                    month: budgetMonth,
+                },
+                data: {
+                    actualAmount: {
+                        decrement: transaction.amount,
+                    },
+                },
+            });
+
+            return true;
+        });
+
+        revalidatePath("/money");
+        revalidatePath("/money/history");
+        return { success: true };
+
+    } catch (error) {
+        console.error("Error deleting transaction:", error);
+        return { error: "Failed to delete transaction" };
+    }
+}
