@@ -8,7 +8,7 @@ import {
   Target,
   Wallet,
   Dumbbell,
-  Zap,
+
   ChevronLeft,
   ChevronRight,
   LogOut,
@@ -99,9 +99,8 @@ export function Sidebar() {
         >
           {/* Logo */}
           <div className="flex h-[60px] items-center gap-2 px-4">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600">
-              <Zap className="h-4 w-4 text-white" />
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/icon.svg" alt="CORE" className="h-8 w-8 shrink-0 rounded-lg" />
             {!collapsed && (
               <span className="text-lg font-black tracking-tight gradient-text">
                 CORE

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Zap, Mail, Lock, Loader2 } from "lucide-react";
+import { Mail, Lock, Loader2 } from "lucide-react";
 import { InstallCard } from "@/components/pwa/InstallCard";
 
 export default function LoginPage() {
@@ -43,9 +43,8 @@ export default function LoginPage() {
         <div className="space-y-8">
             {/* Logo */}
             <div className="flex flex-col items-center gap-3">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 shadow-lg shadow-violet-500/25">
-                    <Zap className="h-7 w-7 text-white" />
-                </div>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/icon.svg" alt="CORE" className="h-14 w-14 rounded-2xl shadow-lg shadow-violet-500/25" />
                 <div className="text-center">
                     <h1 className="text-2xl font-black tracking-tight gradient-text">
                         CORE
