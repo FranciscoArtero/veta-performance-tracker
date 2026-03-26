@@ -18,9 +18,8 @@ export async function GET() {
                 hydrationLogs: {
                     where: {
                         date: (() => {
-                            const today = new Date();
-                            today.setHours(0, 0, 0, 0);
-                            return today;
+                            const now = new Date();
+                            return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
                         })(),
                     },
                     select: { amountMl: true },

@@ -13,8 +13,8 @@ export async function addWater(amountMl: number) {
         return { error: "Cantidad inválida" };
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const now = new Date();
+    const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
 
     await prisma.hydrationLog.create({
         data: {
@@ -48,8 +48,8 @@ export async function addWater(amountMl: number) {
 export async function getTodayHydration() {
     const { id: userId } = await requireAuth();
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const now = new Date();
+    const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
 
     const [logs, user] = await Promise.all([
         prisma.hydrationLog.findMany({

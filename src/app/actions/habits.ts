@@ -235,6 +235,27 @@ export async function recalculateHabitStreak(habitId: string) {
     }
 }
 
+/**
+ * Sync all streaks (global + individual habits) for a user.
+ * Recommended to call on dashboard load to evaluate broken streaks.
+ */
+export async function syncAllStreaks() {
+    const { id: userId } = await requireAuth();
+    
+    // Sync global streak (will evaluate if yesterday was missed)
+    await syncGlobalStreak(userId);
+    
+    // Sync individual streaks
+    const habits = await prisma.habit.findMany({
+        where: { userId, isActive: true },
+        select: { id: true },
+    });
+    
+    for (const h of habits) {
+        await recalculateHabitStreak(h.id);
+    }
+}
+
 // ─────────────────────────────────────
 // Toggle Habit Log (Daily + Weekly Fixed)
 // ─────────────────────────────────────

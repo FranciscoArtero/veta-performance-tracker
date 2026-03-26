@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import {
   getHabitsWithLogs,
   getMonthlyLogs,
+  syncAllStreaks,
 } from "@/app/actions/habits";
 import { getTodayTasks } from "@/app/actions/tasks";
 import {
@@ -17,6 +18,9 @@ import { prisma } from "@/lib/prisma";
 export default async function DashboardPage() {
   try {
     const { id: userId } = await requireAuth();
+
+    // 1. Sync streaks before fetching data to ensure fresh daily resets
+    await syncAllStreaks();
 
     const [habits, moodData, monthlyData, todayMood, tasks, user] = await Promise.all([
       getHabitsWithLogs(),

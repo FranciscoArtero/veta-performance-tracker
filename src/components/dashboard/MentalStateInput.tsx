@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useTransition } from "react";
+import { useState, useCallback, useRef, useTransition, useEffect } from "react";
 import { upsertMentalState } from "@/app/actions/mental-state";
 
 type Props = {
@@ -17,6 +17,12 @@ export function MentalStateInput({ initialState }: Props) {
     // Track which slider is being dragged
     const [activeMood, setActiveMood] = useState(false);
     const [activeMotivation, setActiveMotivation] = useState(false);
+
+    // Sync if server state changes (e.g. crossing midnight and getting null)
+    useEffect(() => {
+        setMood(initialState?.mood ?? 5);
+        setMotivation(initialState?.motivation ?? 5);
+    }, [initialState?.mood, initialState?.motivation]);
 
     const save = useCallback(
         (m: number, mot: number) => {
