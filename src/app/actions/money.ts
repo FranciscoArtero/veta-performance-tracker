@@ -10,6 +10,20 @@ import { revalidatePath } from "next/cache";
 export async function getCategoriesByType(type?: "Income" | "Expense" | "Savings" | "Debt") {
     const { id: userId } = await requireAuth();
 
+    const totalCount = await prisma.financialCategory.count({ where: { userId } });
+    if (totalCount === 0) {
+        await prisma.financialCategory.createMany({
+            data: [
+                { userId, name: "Comida", icon: "utensils", color: "#f43f5e", type: "Expense" },
+                { userId, name: "Transporte", icon: "car", color: "#0ea5e9", type: "Expense" },
+                { userId, name: "Vivienda", icon: "home", color: "#a855f7", type: "Expense" },
+                { userId, name: "Servicios", icon: "zap", color: "#eab308", type: "Expense" },
+                { userId, name: "Ocio", icon: "gamepad-2", color: "#f97316", type: "Expense" },
+                { userId, name: "Sueldo", icon: "circle-dollar-sign", color: "#22c55e", type: "Income" },
+            ]
+        });
+    }
+
     return prisma.financialCategory.findMany({
         where: {
             userId,
