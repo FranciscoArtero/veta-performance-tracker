@@ -91,7 +91,7 @@ export function BudgetRing({ spent, total, remaining }: BudgetRingProps) {
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ type: "spring", delay: 0.4 }}
                     className={`text-4xl md:text-5xl font-black tracking-tighter ${
-                        isOverBudget ? "text-red-500 dark:text-red-400" : getRingColorClass(percentage).replace('stroke-','text-')
+                        isOverBudget ? "text-red-500 dark:text-red-400" : "text-foreground"
                     }`}
                 >
                     {formatMoney(remaining)}

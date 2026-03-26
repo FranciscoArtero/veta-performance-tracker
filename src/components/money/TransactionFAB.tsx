@@ -126,8 +126,8 @@ export function TransactionFAB({ categories, onSaveOptimistic }: TransactionFABP
                     </div>
 
                     {/* Giant Input */}
-                    <div className="w-full flex items-baseline gap-1 overflow-x-auto whitespace-nowrap">
-                        <span className="text-4xl text-zinc-500 font-black shrink-0">
+                    <div className="w-full flex items-center justify-center gap-2 overflow-x-auto py-2">
+                        <span className="text-4xl md:text-5xl text-zinc-500 font-black shrink-0">
                             $
                         </span>
                         <input
@@ -141,8 +141,9 @@ export function TransactionFAB({ categories, onSaveOptimistic }: TransactionFABP
                                 const val = e.target.value.replace(/[^0-9]/g, "");
                                 setAmountStr(val);
                             }}
-                            className="bg-transparent text-right text-6xl md:text-7xl font-black text-white focus:outline-none w-auto placeholder:text-zinc-800 flex-grow"
+                            className="bg-transparent text-center text-6xl md:text-8xl font-black text-white focus:outline-none min-w-[50px] w-auto max-w-full placeholder:text-zinc-800"
                             autoFocus
+                            style={{ width: `${Math.max(1, amountStr.length)}ch` }}
                         />
                     </div>
 
