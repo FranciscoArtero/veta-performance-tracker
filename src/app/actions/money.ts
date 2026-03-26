@@ -109,7 +109,7 @@ export async function createTransaction({
         });
 
         revalidatePath("/");
-        revalidatePath("/money"); // Future money dashboard path
+        revalidatePath("/finances"); 
         return { success: true, data: result };
 
     } catch (error) {
@@ -187,8 +187,8 @@ export async function deleteTransaction(transactionId: string) {
             return true;
         });
 
-        revalidatePath("/money");
-        revalidatePath("/money/history");
+        revalidatePath("/finances");
+        revalidatePath("/finances/history");
         return { success: true };
 
     } catch (error) {

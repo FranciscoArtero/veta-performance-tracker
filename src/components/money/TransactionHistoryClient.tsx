@@ -145,7 +145,7 @@ export function TransactionHistoryClient({ transactions: initialTransactions, cu
             {/* Header */}
             <header className="sticky top-0 z-40 bg-zinc-950/80 backdrop-blur-md border-b border-zinc-900/50 px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <Link href="/money" className="p-2 bg-zinc-900 rounded-full hover:bg-zinc-800 transition-colors">
+                    <Link href="/finances" className="p-2 bg-zinc-900 rounded-full hover:bg-zinc-800 transition-colors">
                         <ArrowLeft className="w-5 h-5" />
                     </Link>
                     <h1 className="text-xl font-black tracking-tight">Reporte Mensual</h1>

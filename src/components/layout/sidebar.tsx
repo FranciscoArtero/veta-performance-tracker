@@ -26,7 +26,14 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { NetworkIndicator } from "@/components/layout/NetworkIndicator";
 
-const navItems = [
+type NavItem = {
+  label: string;
+  href: string;
+  icon: React.ElementType;
+  comingSoon?: boolean;
+};
+
+const navItems: NavItem[] = [
   {
     label: "Dashboard",
     href: "/",
@@ -41,7 +48,6 @@ const navItems = [
     label: "Finanzas",
     href: "/finances",
     icon: Wallet,
-    comingSoon: true,
   },
   {
     label: "Gym",
