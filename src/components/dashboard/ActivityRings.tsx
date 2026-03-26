@@ -38,8 +38,9 @@ export function ActivityRings({ habits, tasks, hydration, size = 160 }: Props) {
     const outerRadius = (size - strokeWidth) / 2;
 
     return (
-        <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
-            <svg width={size} height={size} className="-rotate-90">
+        <div className="inline-flex flex-col items-center" style={{ width: size }}>
+            <div className="relative" style={{ width: size, height: size }}>
+                <svg width={size} height={size} className="-rotate-90">
                 {rings.map((ring, i) => {
                     const radius = outerRadius - i * (strokeWidth + gap);
                     const circumference = 2 * Math.PI * radius;
@@ -98,9 +99,10 @@ export function ActivityRings({ habits, tasks, hydration, size = 160 }: Props) {
                     />
                 ) : null}
             </div>
+            </div>
 
             {/* Legend dots */}
-            <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3">
+            <div className="mt-2 flex items-center justify-center gap-3">
                 {rings.map((ring) => (
                     <div key={ring.label} className="flex items-center gap-1">
                         <div
