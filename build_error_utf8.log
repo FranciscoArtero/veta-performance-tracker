@@ -1,0 +1,47 @@
+﻿  Ôû▓ Next.js 14.2.35
+  - Environments: .env
+
+   Creating an optimized production build ...
+ Ô£ô (pwa) Compiling for server...
+ Ô£ô (pwa) Compiling for server...
+ Ô£ô (pwa) Compiling for client (static)...
+ Ôùï (pwa) Service worker: C:\Users\arter\.gemini\antigravity\scratch\veta-performance-tracker\public\sw.js
+ Ôùï (pwa)   URL: /sw.js
+ Ôùï (pwa)   Scope: /
+ Ô£ô (pwa) Found a custom worker implementation at C:\Users\arter\.gemini\antigravity\scratch\veta-performance-tracker\worker\index.js.
+ Ô£ô (pwa) Building the custom worker to C:\Users\arter\.gemini\antigravity\scratch\veta-performance-tracker\public\worker-081417e9e56e2ba6.js...
+node.exe : Failed to 
+compile.
+En línea: 1 Carácter: 1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo 
+...
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (Failed to com   
+ pile.:String) [],     
+RemoteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+
+./src/app/money/loading
+.tsx
+Module not found: 
+Can't resolve '@/compon
+ents/ui/skeleton'
+
+https://nextjs.org/docs
+/messages/module-not-fo
+und
+
+
+> Build failed because 
+of webpack errors

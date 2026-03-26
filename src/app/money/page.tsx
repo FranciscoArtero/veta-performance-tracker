@@ -1,5 +1,5 @@
 import { requireAuth } from "@/lib/auth";
-import { getMonthlyBudget } from "@/app/actions/money";
+import { getMonthlyBudget, getCategoriesByType } from "@/app/actions/money";
 import { redirect } from "next/navigation";
 import { MoneyDashboardClient } from "@/components/money/MoneyDashboardClient";
 
@@ -16,10 +16,13 @@ export default async function MoneyDashboardPage() {
     const currentMonth = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1));
 
     try {
-        const budgets = await getMonthlyBudget(currentMonth);
+        const [budgets, categories] = await Promise.all([
+            getMonthlyBudget(currentMonth),
+            getCategoriesByType()
+        ]);
 
         return (
-            <MoneyDashboardClient budgets={budgets} currentMonth={currentMonth} />
+            <MoneyDashboardClient budgets={budgets} categories={categories} currentMonth={currentMonth} />
         );
     } catch (e) {
         console.error("Error loading money dashboard:", e);

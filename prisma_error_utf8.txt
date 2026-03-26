@@ -1,0 +1,2 @@
+﻿Prisma schema loaded from prisma\schema.prisma
+Datasource "db": PostgreSQL database "template1", schema "public" at "localhost:51214"

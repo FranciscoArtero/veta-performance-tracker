@@ -1,19 +1,38 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useOptimistic } from "react";
 import { FinancialCategory, Budget } from "@prisma/client";
 import { CategoryBarList } from "./CategoryBarList";
 import { BudgetRing } from "./BudgetRing";
+import { TransactionFAB } from "./TransactionFAB";
 import { motion } from "framer-motion";
 
 type BudgetWithCategory = Budget & { category: FinancialCategory };
 
 interface MoneyDashboardProps {
     budgets: BudgetWithCategory[];
+    categories: FinancialCategory[];
     currentMonth: Date;
 }
 
-export function MoneyDashboardClient({ budgets, currentMonth }: MoneyDashboardProps) {
+export function MoneyDashboardClient({ budgets: initialBudgets, categories, currentMonth }: MoneyDashboardProps) {
+    // Optimistic UI state
+    const [budgets, addOptimisticBudgetUpdate] = useOptimistic(
+        initialBudgets,
+        (state, newTransaction: { amount: number; categoryId: string; type: "Income" | "Expense" }) => {
+            return state.map(b => {
+                if (b.categoryId === newTransaction.categoryId) {
+                    return {
+                        ...b,
+                        actualAmount: (Number(b.actualAmount) + newTransaction.amount) as unknown as typeof b.actualAmount,
+                    };
+                }
+                return b;
+            });
+            // Note: If no budget exists for this category yet, it won't show optimistically 
+            // until server revalidates, which is an edge case we accept for simplicity here.
+        }
+    );
     // Basic calcs: Total planned vs Total actual (excluding "Income" typically, but let's see how user defines it)
     // Zero-Based Budgeting usually plans Income first, then zeroes it out by assigning to Expense/Savings categories.
     // For the "Budget Ring", it's usually Total Expenses / Total Income. If Income is not clearly defined,
@@ -94,6 +113,14 @@ export function MoneyDashboardClient({ budgets, currentMonth }: MoneyDashboardPr
                     </div>
                 )}
             </motion.div>
+
+            {/* Floating Action Button for New Transaction */}
+            <TransactionFAB 
+                categories={categories} 
+                onSaveOptimistic={(amount, categoryId, type) => {
+                    addOptimisticBudgetUpdate({ amount, categoryId, type });
+                }}
+            />
         </div>
     );
 }
