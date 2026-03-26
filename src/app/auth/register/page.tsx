@@ -73,7 +73,7 @@ export default function RegisterPage() {
             {/* Logo */}
             <div className="flex flex-col items-center gap-3">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/icon.svg" alt="CORE" className="h-14 w-14 rounded-2xl shadow-lg shadow-violet-500/25" />
+                <img src="/icon-192.png" alt="CORE" className="h-14 w-14 rounded-2xl shadow-lg shadow-violet-500/25" />
                 <div className="text-center">
                     <h1 className="text-2xl font-black tracking-tight gradient-text">
                         CORE
