@@ -103,7 +103,7 @@ export function TransactionFAB({ categories, onSaveOptimistic }: TransactionFABP
             </DrawerTrigger>
 
             <DrawerContent className="bg-zinc-950 border-zinc-900">
-                <div className="mx-auto w-full max-w-sm flex flex-col items-center justify-center px-6 pt-8 pb-12 space-y-8">
+                <div className="mx-auto w-full max-w-4xl flex flex-col items-center justify-center px-6 pt-8 pb-12 space-y-8">
                     {/* Header: Toggle Switch */}
                     <DrawerTitle className="sr-only">Nueva Transacción</DrawerTitle>
                     <div className="flex bg-zinc-900/50 p-1 rounded-full border border-zinc-800/50">
@@ -126,7 +126,7 @@ export function TransactionFAB({ categories, onSaveOptimistic }: TransactionFABP
                     </div>
 
                     {/* Giant Input */}
-                    <div className="w-full flex justify-center items-baseline gap-1 overflow-hidden">
+                    <div className="w-full flex items-baseline gap-1 overflow-x-auto whitespace-nowrap">
                         <span className="text-4xl text-zinc-500 font-black shrink-0">
                             $
                         </span>
@@ -141,7 +141,7 @@ export function TransactionFAB({ categories, onSaveOptimistic }: TransactionFABP
                                 const val = e.target.value.replace(/[^0-9]/g, "");
                                 setAmountStr(val);
                             }}
-                            className="bg-transparent text-center text-6xl md:text-7xl font-black text-white focus:outline-none w-full min-w-0 placeholder:text-zinc-800 shrink-1"
+                            className="bg-transparent text-right text-6xl md:text-7xl font-black text-white focus:outline-none w-auto placeholder:text-zinc-800 flex-grow"
                             autoFocus
                         />
                     </div>

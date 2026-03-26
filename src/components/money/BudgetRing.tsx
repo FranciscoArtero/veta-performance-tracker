@@ -20,12 +20,15 @@ export function BudgetRing({ spent, total, remaining }: BudgetRingProps) {
     const isOverBudget = spent > total && total > 0;
 
     function getRingColorClass(p: number) {
-        if (p < 0.25) return "stroke-emerald-400";
-        if (p < 0.50) return "stroke-emerald-500";
-        if (p < 0.75) return "stroke-yellow-400";
+        if (p < 0.20) return "stroke-emerald-200";
+        if (p < 0.40) return "stroke-emerald-400";
+        if (p < 0.60) return "stroke-emerald-600";
+        if (p < 0.80) return "stroke-yellow-400";
         if (p < 0.90) return "stroke-orange-500";
         return "stroke-red-500";
     }
+
+
 
     function getRingShadow(p: number) {
         if (p < 0.25) return "drop-shadow(0 0 12px rgba(52,211,153,0.3))";
@@ -88,7 +91,7 @@ export function BudgetRing({ spent, total, remaining }: BudgetRingProps) {
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ type: "spring", delay: 0.4 }}
                     className={`text-4xl md:text-5xl font-black tracking-tighter ${
-                        isOverBudget ? "text-red-500 dark:text-red-400" : "text-foreground"
+                        isOverBudget ? "text-red-500 dark:text-red-400" : getRingColorClass(percentage).replace('stroke-','text-')
                     }`}
                 >
                     {formatMoney(remaining)}
