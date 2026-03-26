@@ -264,58 +264,78 @@ export function DashboardClient({
                 </div>
             </motion.div>
 
-            {/* ═══ 1. Rings + Compact Stats ═══ */}
+            {/* ═══ 1. Rings + Stat Cards (side by side) ═══ */}
             <motion.div
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.15, duration: 0.4 }}
+                className="grid grid-cols-[auto_1fr] gap-3 items-stretch"
             >
+                {/* Left: Activity Rings */}
                 <Card className={glassCard}>
-                    <CardContent className="p-5">
-                        <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center sm:gap-6">
-                            {/* Rings */}
-                            <ActivityRings
-                                habits={habitsPercent}
-                                tasks={tasksPercent}
-                                hydration={isHydrationEnabled ? (hydrationData?.percent ?? 0) : undefined}
-                                size={140}
-                            />
-                            {/* Compact stat pills */}
-                            <div className="flex flex-wrap items-center justify-center gap-2 sm:flex-col sm:items-start sm:gap-1.5 mt-2 sm:mt-0">
-                                <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                                    <span className="h-1.5 w-1.5 rounded-full bg-violet-500" />
-                                    Hábitos <span className="font-semibold text-foreground">{completedRequired}/{totalRequired}</span>
-                                </span>
-                                <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                                    Tareas <span className="font-semibold text-foreground">{completedTasksToday}/{totalTasksToday}</span>
-                                </span>
-                                {isHydrationEnabled && hydrationData && (
-                                    <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                                        <span className="h-1.5 w-1.5 rounded-full bg-cyan-500" />
-                                        Agua <motion.span
-                                            className="font-semibold text-foreground"
-                                            animate={waterBounce ? { scale: [1, 1.15, 1] } : {}}
-                                            transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                                        >{hydrationData.totalMl}</motion.span>
-                                        <span>/ {hydrationData.goalMl} ml</span>
-                                    </span>
-                                )}
-                                <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                                    <Flame className="h-3 w-3 text-orange-400" />
-                                    Racha <span className="font-semibold text-foreground">{longestGlobalStreak}d</span>
-                                </span>
-                                <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                                    <Brain className="h-3 w-3 text-cyan-400" />
-                                    Mood <span className="font-semibold text-foreground">{avgMood}/10</span>
-                                </span>
-                                <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                                    Mes <span className="font-semibold text-foreground">{monthlyPercent}%</span>
-                                </span>
-                            </div>
-                        </div>
+                    <CardContent className="p-4 flex items-center justify-center">
+                        <ActivityRings
+                            habits={habitsPercent}
+                            tasks={tasksPercent}
+                            hydration={isHydrationEnabled ? (hydrationData?.percent ?? 0) : undefined}
+                            size={130}
+                        />
                     </CardContent>
                 </Card>
+
+                {/* Right: 2×2 Stat Grid */}
+                <div className="grid grid-cols-2 grid-rows-2 gap-2">
+                    {/* Hábitos */}
+                    <Card className={glassCard}>
+                        <CardContent className="p-3 flex flex-col justify-center h-full">
+                            <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Hábitos</p>
+                            <p className="text-lg font-bold leading-tight">{completedRequired}/{totalRequired}</p>
+                        </CardContent>
+                    </Card>
+                    {/* Racha */}
+                    <Card className={glassCard}>
+                        <CardContent className="p-3 flex flex-col justify-center h-full">
+                            <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Racha</p>
+                            <div className="flex items-baseline gap-1">
+                                <p className="text-lg font-bold leading-tight">{longestGlobalStreak}</p>
+                                <span className="text-[10px] text-muted-foreground">días</span>
+                            </div>
+                        </CardContent>
+                    </Card>
+                    {/* Mood */}
+                    <Card className={glassCard}>
+                        <CardContent className="p-3 flex flex-col justify-center h-full">
+                            <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Mood</p>
+                            <div className="flex items-baseline gap-1">
+                                <p className="text-lg font-bold leading-tight">{avgMood}</p>
+                                <span className="text-[10px] text-muted-foreground">/10</span>
+                            </div>
+                        </CardContent>
+                    </Card>
+                    {/* Agua / Mes */}
+                    {isHydrationEnabled && hydrationData ? (
+                        <Card className={glassCard}>
+                            <CardContent className="p-3 flex flex-col justify-center h-full">
+                                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Agua</p>
+                                <div className="flex items-baseline gap-1">
+                                    <motion.p
+                                        className="text-lg font-bold leading-tight"
+                                        animate={waterBounce ? { scale: [1, 1.15, 1] } : {}}
+                                        transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                                    >{hydrationData.totalMl}</motion.p>
+                                    <span className="text-[10px] text-muted-foreground">ml</span>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <Card className={glassCard}>
+                            <CardContent className="p-3 flex flex-col justify-center h-full">
+                                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Mes</p>
+                                <p className="text-lg font-bold leading-tight">{monthlyPercent}%</p>
+                            </CardContent>
+                        </Card>
+                    )}
+                </div>
             </motion.div>
 
             {/* ═══ 2. Hábitos de hoy ═══ */}
