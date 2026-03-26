@@ -11,56 +11,58 @@ datasource db {
 }
 
 model User {
-  id                 String        @id @default(cuid())
-  email              String        @unique
-  name               String?
-  password           String?
-  image              String?
-  role               String        @default("USER") // "USER" | "ADMIN"
-  isActive           Boolean       @default(true)
-  mustChangePassword Boolean       @default(false)
-  timezone           String        @default("America/Argentina/Buenos_Aires")
-  habits             Habit[]
-  mentalStates       MentalState[]
-  tasks              Task[]
+  id                   String              @id @default(cuid())
+  email                String              @unique
+  name                 String?
+  password             String?
+  image                String?
+  role                 String              @default("USER") // "USER" | "ADMIN"
+  isActive             Boolean             @default(true)
+  mustChangePassword   Boolean             @default(false)
+  timezone             String              @default("America/Argentina/Buenos_Aires")
+  habits               Habit[]
+  mentalStates         MentalState[]
+  tasks                Task[]
   // Gamification
-  currentGlobalStreak  Int @default(0)
-  longestGlobalStreak  Int @default(0)
-  lastGlobalStreakDate DateTime? @db.Date
+  currentGlobalStreak  Int                 @default(0)
+  longestGlobalStreak  Int                 @default(0)
+  lastGlobalStreakDate DateTime?           @db.Date
   unlockedAchievements Achievement[]
   // Gym
-  workoutRoutines    WorkoutRoutine[]
-  workoutLogs        WorkoutLog[]
+  workoutRoutines      WorkoutRoutine[]
+  workoutLogs          WorkoutLog[]
   // Hydration
-  isHydrationEnabled Boolean       @default(false)
-  hydrationGoalMl    Int           @default(2000)
-  hydrationLogs      HydrationLog[]
-  // Future relations:
-  // expenses     Expense[]
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
+  isHydrationEnabled   Boolean             @default(false)
+  hydrationGoalMl      Int                 @default(2000)
+  hydrationLogs        HydrationLog[]
+  // Money
+  financialCategories  FinancialCategory[]
+  budgets              Budget[]
+  transactions         Transaction[]
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
 
   @@map("users")
 }
 
 model Habit {
-  id         String     @id @default(cuid())
-  name       String
-  icon       String     @default("check") // Lucide icon name
-  color      String     @default("#8b5cf6") // hex color
-  frequency  String     @default("daily") // "daily" | "weekly_fixed" | "weekly_flexible"
-  weeklyMode String?    // "fixed" | "flexible" (null if daily)
-  goalDays   Int?       // e.g. 3 for "3x/week" (only for flexible)
-  targetDays Int[]      @default([]) // [1,3,5] = Mon-Wed-Fri (only for fixed, 0=Sun)
-  isActive   Boolean    @default(true)
-  order      Int        @default(0)
-  currentStreak Int     @default(0)
-  longestStreak Int     @default(0)
-  userId     String
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  logs       HabitLog[]
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+  id            String     @id @default(cuid())
+  name          String
+  icon          String     @default("check") // Lucide icon name
+  color         String     @default("#8b5cf6") // hex color
+  frequency     String     @default("daily") // "daily" | "weekly_fixed" | "weekly_flexible"
+  weeklyMode    String? // "fixed" | "flexible" (null if daily)
+  goalDays      Int? // e.g. 3 for "3x/week" (only for flexible)
+  targetDays    Int[]      @default([]) // [1,3,5] = Mon-Wed-Fri (only for fixed, 0=Sun)
+  isActive      Boolean    @default(true)
+  order         Int        @default(0)
+  currentStreak Int        @default(0)
+  longestStreak Int        @default(0)
+  userId        String
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logs          HabitLog[]
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 
   @@index([userId])
   @@map("habits")
@@ -116,11 +118,11 @@ model Task {
 // ============================================
 
 model Achievement {
-  id          String   @id @default(cuid())
-  userId      String
-  type        String   // "BRONZE_7", "SILVER_30", "GOLD_100", "DIAMOND_365"
-  unlockedAt  DateTime @default(now())
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  userId     String
+  type       String // "BRONZE_7", "SILVER_30", "GOLD_100", "DIAMOND_365"
+  unlockedAt DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, type])
   @@index([userId])
@@ -165,7 +167,7 @@ model WorkoutLog {
   id               String         @id @default(cuid())
   date             DateTime       @db.Date
   notes            String?
-  rpe              Int?           // Rate of Perceived Exertion 1-10
+  rpe              Int? // Rate of Perceived Exertion 1-10
   durationMinutes  Int?
   progressPhotoUrl String?
   routineId        String
@@ -185,8 +187,8 @@ model ExerciseSet {
   id           String     @id @default(cuid())
   setNumber    Int
   reps         Int?
-  weight       Float?     // kg
-  durationSec  Int?       // for timed exercises (planks, etc.)
+  weight       Float? // kg
+  durationSec  Int? // for timed exercises (planks, etc.)
   exerciseId   String
   exercise     Exercise   @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
   workoutLogId String
@@ -205,7 +207,7 @@ model HydrationLog {
   id        String   @id @default(cuid())
   userId    String
   date      DateTime @db.Date
-  amountMl  Int      // ml added in this entry
+  amountMl  Int // ml added in this entry
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
@@ -216,22 +218,60 @@ model HydrationLog {
 }
 
 // ============================================
-// FUTURE MODELS (uncomment when ready)
+// MONEY MODELS (Zero-Based Budgeting)
 // ============================================
 
-// model Expense {
-//   id          String   @id @default(cuid())
-//   userId      String
-//   date        DateTime @db.Date
-//   amount      Decimal  @db.Decimal(10, 2)
-//   category    String
-//   description String?
-//   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-//   createdAt   DateTime @default(now())
-//   updatedAt   DateTime @updatedAt
-//
-//   @@index([userId])
-//   @@index([date])
-//   @@map("expenses")
-// }
+model FinancialCategory {
+  id           String        @id @default(cuid())
+  userId       String
+  name         String
+  icon         String        @default("circle-dollar-sign") // Lucide icon name
+  color        String        @default("#10b981") // hex color
+  type         String // "Income" | "Expense" | "Savings" | "Debt"
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  budgets      Budget[]
+  transactions Transaction[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
+  @@index([userId])
+  @@map("financial_categories")
+}
+
+model Budget {
+  id            String            @id @default(cuid())
+  userId        String
+  categoryId    String
+  month         DateTime          @db.Date // 1st day of the month
+  plannedAmount Decimal           @db.Decimal(10, 2)
+  actualAmount  Decimal           @default(0) @db.Decimal(10, 2)
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category      FinancialCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@unique([userId, categoryId, month])
+  @@index([userId])
+  @@index([categoryId])
+  @@index([month])
+  @@map("budgets")
+}
+
+model Transaction {
+  id          String            @id @default(cuid())
+  userId      String
+  categoryId  String
+  date        DateTime          @db.Date
+  amount      Decimal           @db.Decimal(10, 2)
+  description String?
+  type        String // "Income" | "Expense"
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category    FinancialCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([userId])
+  @@index([categoryId])
+  @@index([date])
+  @@map("transactions")
+}
