@@ -57,8 +57,6 @@ export default function LoginPage() {
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
-                <InstallCard />
-
                 {error && (
                     <div className="rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-400">
                         {error}
@@ -125,6 +123,10 @@ export default function LoginPage() {
                     Crear cuenta
                 </Link>
             </p>
+
+            <div className="pt-4">
+                <InstallCard />
+            </div>
         </div>
     );
 }

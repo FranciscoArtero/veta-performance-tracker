@@ -5,6 +5,7 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Mail, Lock, User, Loader2 } from "lucide-react";
+import { InstallCard } from "@/components/pwa/InstallCard";
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -188,6 +189,10 @@ export default function RegisterPage() {
                     Iniciar sesión
                 </Link>
             </p>
+
+            <div className="pt-4">
+                <InstallCard />
+            </div>
         </div>
     );
 }
