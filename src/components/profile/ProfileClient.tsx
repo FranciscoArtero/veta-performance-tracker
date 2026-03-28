@@ -9,7 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { changePassword, updateTimezone } from "@/app/actions/profile";
 import { InstallCard } from "@/components/pwa/InstallCard";
+import { FeedbackBox } from "@/components/settings/FeedbackBox";
 import { TrophyRoom, type Achievement } from "./TrophyRoom";
+
 
 const TIMEZONES = [
     { value: "America/Argentina/Buenos_Aires", label: "Argentina (Buenos Aires)" },
@@ -398,6 +400,13 @@ export function ProfileClient({ profile }: Props) {
                         )}
                     </CardContent>
                 </Card>
+            )}
+
+            <Separator className="opacity-50" />
+
+            {/* Feedback Box */}
+            {!profile.mustChangePassword && (
+                <FeedbackBox />
             )}
 
             <Separator className="opacity-50" />
