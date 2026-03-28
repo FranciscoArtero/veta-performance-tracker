@@ -1,6 +1,7 @@
 import { Settings, User, Bell, Palette, Database, Shield } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { FeedbackBox } from "@/components/settings/FeedbackBox";
 
 const settingsSections = [
     {
@@ -79,6 +80,10 @@ export default function SettingsPage() {
                         </CardContent>
                     </Card>
                 ))}
+            </div>
+
+            <div className="max-w-2xl mt-8">
+                <FeedbackBox />
             </div>
 
             <Separator className="opacity-50 max-w-2xl" />

@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Shield, Users, UserX, UserCheck, KeyRound, Loader2 } from "lucide-react";
+import { Shield, Users, UserX, UserCheck, KeyRound, Loader2, MessageSquare } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
 import { toggleUserActive, resetUserPassword } from "@/app/actions/admin";
 
 type UserRow = {
@@ -99,6 +100,19 @@ export function AdminClient({ users: initialUsers }: Props) {
                             <p className="text-xs text-muted-foreground">Activos</p>
                         </div>
                     </CardContent>
+                </Card>
+                <Card className="border-border/50 bg-card/50 backdrop-blur-sm cursor-pointer hover:border-violet-500/30 transition-smooth group">
+                    <Link href="/admin/feedback">
+                        <CardContent className="p-4 flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/10 group-hover:bg-violet-500/20 transition-smooth">
+                                <MessageSquare className="h-5 w-5 text-violet-400" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-medium">Buzón de Feedbacks</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">Leer reseñas</p>
+                            </div>
+                        </CardContent>
+                    </Link>
                 </Card>
             </div>
 
