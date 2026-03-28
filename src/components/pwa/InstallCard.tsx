@@ -50,9 +50,8 @@ export function InstallCard() {
         }
     };
 
-    // If it's not iOS and we don't have a prompt yet, better not show anything to avoid a dead button
-    // (Except maybe on desktop it takes a bit, but usually we just want to hide if not installable)
-    if (!isIOS && !deferredPrompt) return null;
+    // Just don't hide it unless standalone. Users want to see it as a branding/info element.
+    // if (!isIOS && !deferredPrompt) return null;
 
     return (
         <Card className="border-border/50 bg-gradient-to-br from-violet-500/10 to-indigo-500/10 overflow-hidden relative">
