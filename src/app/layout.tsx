@@ -25,7 +25,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "CORE — Performance OS",
+  title: "CORE OS",
   description:
     "Track your habits, mental state, finances and workouts. Build better habits, achieve more.",
   keywords: [

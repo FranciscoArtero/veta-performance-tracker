@@ -12,7 +12,7 @@ const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
-const TEMP_USER_ID = "default-user-veta";
+const TEMP_USER_ID = "default-user-core";
 
 const defaultHabits = [
     { name: "Despertar a las 6:00", icon: "⏰", color: "#8b5cf6", frequency: "daily", order: 0 },
@@ -36,8 +36,8 @@ async function main() {
         update: {},
         create: {
             id: TEMP_USER_ID,
-            email: "veta@demo.com",
-            name: "Veta User",
+            email: "core@demo.com",
+            name: "CORE OS User",
         },
     });
     console.log(`✅ User: ${user.name} (${user.id})`);

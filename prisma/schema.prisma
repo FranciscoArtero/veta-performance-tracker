@@ -1,4 +1,4 @@
-// Veta Performance Tracker - Prisma Schema
+// CORE OS - Prisma Schema
 // PostgreSQL database
 
 generator client {

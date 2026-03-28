@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
     return {
-        name: 'CORE Performance OS',
+        name: 'CORE OS',
         short_name: 'CORE',
         description: 'Track your habits, mental state, finances and workouts. Build better habits, achieve more.',
         start_url: '/',

@@ -125,7 +125,7 @@ export function TransactionHistoryClient({ transactions: initialTransactions, cu
         const link = document.createElement("a");
         const url = URL.createObjectURL(blob);
         link.setAttribute("href", url);
-        link.setAttribute("download", `VETA_Gastos_${currentMonth.getMonth() + 1}_${currentMonth.getFullYear()}.csv`);
+        link.setAttribute("download", `CORE_Gastos_${currentMonth.getMonth() + 1}_${currentMonth.getFullYear()}.csv`);
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();
