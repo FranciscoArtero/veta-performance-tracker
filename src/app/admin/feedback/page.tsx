@@ -28,7 +28,13 @@ export default async function AdminFeedbackPage() {
                 </Link>
             </div>
 
-            <AdminFeedbackClient initialFeedbacks={feedbacks.map((f: any) => ({
+            <AdminFeedbackClient initialFeedbacks={feedbacks.map((f: {
+                id: string;
+                message: string;
+                read: boolean;
+                createdAt: Date;
+                user: { name: string | null; email: string; image: string | null; }
+            }) => ({
                 id: f.id,
                 message: f.message,
                 read: f.read,
