@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Zap, Share, PlusSquare, ArrowBigDown } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { toast } from "sonner";
 
 type Platform = "ios" | "android" | "other";
 
@@ -42,9 +43,17 @@ export function InstallCard() {
             e.preventDefault();
             setDeferredPrompt(e as BeforeInstallPromptEvent);
         };
+        const onAppInstalled = () => {
+            setDeferredPrompt(null);
+            setIsStandalone(true);
+        };
 
         window.addEventListener("beforeinstallprompt", handler);
-        return () => window.removeEventListener("beforeinstallprompt", handler);
+        window.addEventListener("appinstalled", onAppInstalled);
+        return () => {
+            window.removeEventListener("beforeinstallprompt", handler);
+            window.removeEventListener("appinstalled", onAppInstalled);
+        };
     }, []);
 
     if (isStandalone) return null;
@@ -56,13 +65,16 @@ export function InstallCard() {
         }
 
         if (!deferredPrompt) {
+            toast.info("No se pudo abrir el instalador directo. Usa el menu del navegador y toca 'Instalar aplicacion'.");
             return;
         }
 
-        await deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === "accepted") {
+        try {
+            await deferredPrompt.prompt();
+            await deferredPrompt.userChoice;
             setDeferredPrompt(null);
+        } catch {
+            toast.error("No se pudo abrir el instalador. Intenta de nuevo en unos segundos.");
         }
     };
 
@@ -83,9 +95,9 @@ export function InstallCard() {
                         </p>
                     </div>
                     <button
+                        type="button"
                         onClick={handleInstallClick}
-                        disabled={platform !== "ios" && !deferredPrompt}
-                        className="bg-violet-600 hover:bg-violet-500 disabled:bg-violet-600/50 disabled:cursor-not-allowed text-white rounded-xl px-4 py-2.5 text-xs font-bold transition-all active:scale-95 shadow-lg shadow-violet-600/30 flex items-center gap-2"
+                        className="bg-violet-600 hover:bg-violet-500 text-white rounded-xl px-4 py-2.5 text-xs font-bold transition-all active:scale-95 shadow-lg shadow-violet-600/30 flex items-center gap-2"
                     >
                         {platform !== "ios" && <ArrowBigDown className="h-4 w-4" />}
                         {platform === "ios" ? "Como poner en inicio" : "Instalar"}
