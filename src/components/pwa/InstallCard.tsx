@@ -18,7 +18,6 @@ export function InstallCard() {
     if (!mounted) return null;
     if (isInstalled) return null;
     if (dismissed) return null;
-    if (!isInstallable && !isIOS) return null;
 
     return (
         <Card className="border-border/50 bg-gradient-to-br from-violet-600/10 via-indigo-600/10 to-transparent overflow-hidden relative shadow-2xl">
@@ -44,14 +43,22 @@ export function InstallCard() {
                             Disfruta una experiencia fluida y hasta 2x mas rapida.
                         </p>
                         {!isIOS && (
-                            <button
-                                type="button"
-                                onClick={installApp}
-                                className="mt-3 bg-violet-600 hover:bg-violet-500 text-white rounded-xl px-4 py-2.5 text-xs font-bold transition-all active:scale-95 shadow-lg shadow-violet-600/30 flex items-center justify-center gap-2 w-full sm:w-auto"
-                            >
-                                <ArrowBigDown className="h-4 w-4" />
-                                Instalar
-                            </button>
+                            <div className="mt-3 space-y-2">
+                                <button
+                                    type="button"
+                                    onClick={installApp}
+                                    disabled={!isInstallable}
+                                    className="bg-violet-600 hover:bg-violet-500 disabled:bg-violet-600/40 disabled:cursor-not-allowed text-white rounded-xl px-4 py-2.5 text-xs font-bold transition-all active:scale-95 shadow-lg shadow-violet-600/30 flex items-center justify-center gap-2 w-full sm:w-auto"
+                                >
+                                    <ArrowBigDown className="h-4 w-4" />
+                                    Instalar
+                                </button>
+                                {!isInstallable && (
+                                    <p className="text-[11px] text-muted-foreground">
+                                        Preparando instalacion...
+                                    </p>
+                                )}
+                            </div>
                         )}
                     </div>
                 </div>

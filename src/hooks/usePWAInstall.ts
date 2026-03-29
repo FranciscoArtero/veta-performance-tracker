@@ -9,6 +9,12 @@ type BeforeInstallPromptEvent = Event & {
     }>;
 };
 
+declare global {
+    interface Window {
+        __coreDeferredPrompt?: BeforeInstallPromptEvent | null;
+    }
+}
+
 export function usePWAInstall() {
     const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
     const [isInstallable, setIsInstallable] = useState(false);
@@ -23,6 +29,8 @@ export function usePWAInstall() {
             window.matchMedia("(display-mode: standalone)").matches ||
             (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
         setIsInstalled(standalone);
+        setDeferredPrompt(window.__coreDeferredPrompt ?? null);
+        setIsInstallable(!standalone && Boolean(window.__coreDeferredPrompt));
 
         const handleBeforeInstall = (event: Event) => {
             event.preventDefault();
@@ -30,10 +38,29 @@ export function usePWAInstall() {
             setIsInstallable(true);
         };
 
+        const onInstallReady = () => {
+            const prompt = window.__coreDeferredPrompt ?? null;
+            setDeferredPrompt(prompt);
+            setIsInstallable(!standalone && Boolean(prompt));
+        };
+
+        const onAppInstalled = () => {
+            window.__coreDeferredPrompt = null;
+            setDeferredPrompt(null);
+            setIsInstallable(false);
+            setIsInstalled(true);
+        };
+
         window.addEventListener("beforeinstallprompt", handleBeforeInstall);
+        window.addEventListener("core:pwa-install-ready", onInstallReady);
+        window.addEventListener("core:pwa-installed", onAppInstalled);
+        window.addEventListener("appinstalled", onAppInstalled);
 
         return () => {
             window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
+            window.removeEventListener("core:pwa-install-ready", onInstallReady);
+            window.removeEventListener("core:pwa-installed", onAppInstalled);
+            window.removeEventListener("appinstalled", onAppInstalled);
         };
     }, []);
 
@@ -49,6 +76,7 @@ export function usePWAInstall() {
                 setIsInstallable(false);
             }
 
+            window.__coreDeferredPrompt = null;
             setDeferredPrompt(null);
             return outcome === "accepted";
         } catch {
