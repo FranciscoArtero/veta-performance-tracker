@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Zap, Share, PlusSquare, ArrowBigDown } from "lucide-react";
+import { Zap, Share, PlusSquare, ArrowBigDown, Info } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { toast } from "sonner";
 
 type Platform = "ios" | "android" | "other";
 
@@ -20,6 +19,7 @@ export function InstallCard() {
     const [platform, setPlatform] = useState<Platform>("other");
     const [isStandalone, setIsStandalone] = useState(true);
     const [showIosGuide, setShowIosGuide] = useState(false);
+    const [showManualGuide, setShowManualGuide] = useState(false);
 
     useEffect(() => {
         const isAppMode =
@@ -65,7 +65,7 @@ export function InstallCard() {
         }
 
         if (!deferredPrompt) {
-            toast.info("No se pudo abrir el instalador directo. Usa el menu del navegador y toca 'Instalar aplicacion'.");
+            setShowManualGuide((prev) => !prev);
             return;
         }
 
@@ -73,8 +73,9 @@ export function InstallCard() {
             await deferredPrompt.prompt();
             await deferredPrompt.userChoice;
             setDeferredPrompt(null);
+            setShowManualGuide(false);
         } catch {
-            toast.error("No se pudo abrir el instalador. Intenta de nuevo en unos segundos.");
+            setShowManualGuide(true);
         }
     };
 
@@ -118,6 +119,26 @@ export function InstallCard() {
                                 <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-violet-600 text-[11px] font-black">2</div>
                                 <p className="text-[12px] text-zinc-300 leading-tight">
                                     Toca <span className="font-bold text-white inline-flex items-center gap-1"><PlusSquare className="h-4 w-4" /> Agregar a inicio</span>.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {platform !== "ios" && showManualGuide && (
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mt-2 space-y-3 shadow-inner">
+                        <p className="text-[13px] font-semibold text-zinc-200">Instalacion manual (Android/PC):</p>
+                        <div className="space-y-3">
+                            <div className="flex items-start gap-3">
+                                <Info className="h-4 w-4 text-violet-400 mt-0.5 shrink-0" />
+                                <p className="text-[12px] text-zinc-300">
+                                    Abri el menu del navegador (tres puntos o icono de instalar).
+                                </p>
+                            </div>
+                            <div className="flex items-start gap-3">
+                                <Info className="h-4 w-4 text-violet-400 mt-0.5 shrink-0" />
+                                <p className="text-[12px] text-zinc-300">
+                                    Toca <span className="font-semibold text-white">Instalar aplicacion</span> o <span className="font-semibold text-white">Instalar app</span>.
                                 </p>
                             </div>
                         </div>
