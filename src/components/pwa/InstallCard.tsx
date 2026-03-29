@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Zap, Share, PlusSquare, ArrowBigDown, Info } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -20,6 +20,20 @@ export function InstallCard() {
     const [isStandalone, setIsStandalone] = useState(true);
     const [showIosGuide, setShowIosGuide] = useState(false);
     const [showManualGuide, setShowManualGuide] = useState(false);
+    const [installRequested, setInstallRequested] = useState(false);
+
+    const openInstallPrompt = useCallback(async (promptEvent: BeforeInstallPromptEvent) => {
+        try {
+            await promptEvent.prompt();
+            await promptEvent.userChoice;
+            setDeferredPrompt(null);
+            setShowManualGuide(false);
+        } catch {
+            setShowManualGuide(true);
+        } finally {
+            setInstallRequested(false);
+        }
+    }, []);
 
     useEffect(() => {
         const isAppMode =
@@ -56,7 +70,20 @@ export function InstallCard() {
         };
     }, []);
 
-    if (isStandalone) return null;
+    useEffect(() => {
+        if (!installRequested || platform === "ios" || !deferredPrompt) return;
+        void openInstallPrompt(deferredPrompt);
+    }, [installRequested, platform, deferredPrompt, openInstallPrompt]);
+
+    useEffect(() => {
+        if (!installRequested || platform === "ios" || deferredPrompt) return;
+        const timeout = window.setTimeout(() => {
+            setShowManualGuide(true);
+            setInstallRequested(false);
+        }, 1500);
+
+        return () => window.clearTimeout(timeout);
+    }, [installRequested, platform, deferredPrompt]);
 
     const handleInstallClick = async () => {
         if (platform === "ios") {
@@ -65,19 +92,15 @@ export function InstallCard() {
         }
 
         if (!deferredPrompt) {
-            setShowManualGuide((prev) => !prev);
+            setShowManualGuide(false);
+            setInstallRequested(true);
             return;
         }
 
-        try {
-            await deferredPrompt.prompt();
-            await deferredPrompt.userChoice;
-            setDeferredPrompt(null);
-            setShowManualGuide(false);
-        } catch {
-            setShowManualGuide(true);
-        }
+        await openInstallPrompt(deferredPrompt);
     };
+
+    if (isStandalone) return null;
 
     return (
         <Card className="border-border/50 bg-gradient-to-br from-violet-600/10 via-indigo-600/10 to-transparent overflow-hidden relative shadow-2xl">
