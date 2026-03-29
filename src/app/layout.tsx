@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
+import Script from "next/script";
 import "./globals.css";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Providers } from "@/components/layout/providers";
@@ -53,6 +54,20 @@ export default function RootLayout({
         suppressHydrationWarning
         className={`${geistSans.variable} ${geistMono.variable} font-[family-name:var(--font-geist-sans)] antialiased`}
       >
+        <Script id="pwa-install-capture" strategy="beforeInteractive">
+          {`
+            window.__coreDeferredPrompt = window.__coreDeferredPrompt || null;
+            window.addEventListener('beforeinstallprompt', function(event) {
+              event.preventDefault();
+              window.__coreDeferredPrompt = event;
+              window.dispatchEvent(new Event('core:pwa-install-ready'));
+            });
+            window.addEventListener('appinstalled', function() {
+              window.__coreDeferredPrompt = null;
+              window.dispatchEvent(new Event('core:pwa-installed'));
+            });
+          `}
+        </Script>
         <Providers>
           <Sidebar />
           <main className="min-h-screen bg-background transition-all duration-300 pb-16 md:pb-0 md:ml-[240px]">

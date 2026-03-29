@@ -3,7 +3,6 @@
 import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "next-themes";
 import { NetworkStatusProvider } from "@/components/providers/NetworkStatusProvider";
-import { PwaInstallPromptProvider } from "@/components/pwa/PwaInstallPromptProvider";
 
 export function Providers({ children }: { children: React.ReactNode }) {
     return (
@@ -15,7 +14,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
                 disableTransitionOnChange
             >
                 <NetworkStatusProvider>
-                    <PwaInstallPromptProvider />
                     {children}
                 </NetworkStatusProvider>
             </ThemeProvider>
