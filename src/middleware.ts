@@ -6,6 +6,11 @@ export default withAuth(
         const { pathname } = req.nextUrl;
         const token = req.nextauth.token;
 
+        // Never apply auth logic to static assets (sw.js, manifest, icons, etc.)
+        if (pathname.includes(".")) {
+            return NextResponse.next();
+        }
+
         // If user is authenticated and tries to access auth pages, redirect to home
         if (pathname.startsWith("/auth") && token) {
             return NextResponse.redirect(new URL("/", req.url));
@@ -41,6 +46,11 @@ export default withAuth(
         callbacks: {
             authorized({ req, token }) {
                 const { pathname } = req.nextUrl;
+
+                // Allow static assets so service worker/manifest can be fetched anonymously
+                if (pathname.includes(".")) {
+                    return true;
+                }
 
                 // Public routes: auth pages and API auth routes
                 if (
