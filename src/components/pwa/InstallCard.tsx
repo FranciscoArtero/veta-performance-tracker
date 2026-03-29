@@ -12,6 +12,7 @@ export function InstallCard() {
 
     useEffect(() => {
         // Detect if already installed / standalone
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const isAppMode = window.matchMedia("(display-mode: standalone)").matches || (window.navigator as any).standalone;
         setIsStandalone(isAppMode);
 
