@@ -14,6 +14,12 @@ type BeforeInstallPromptEvent = Event & {
     }>;
 };
 
+declare global {
+    interface Window {
+        __coreDeferredPrompt?: BeforeInstallPromptEvent | null;
+    }
+}
+
 export function InstallCard() {
     const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
     const [platform, setPlatform] = useState<Platform>("other");
@@ -26,6 +32,7 @@ export function InstallCard() {
         try {
             await promptEvent.prompt();
             await promptEvent.userChoice;
+            window.__coreDeferredPrompt = null;
             setDeferredPrompt(null);
             setShowManualGuide(false);
         } catch {
@@ -53,19 +60,22 @@ export function InstallCard() {
         else if (isAndroid) setPlatform("android");
         else setPlatform("other");
 
-        const handler = (e: Event) => {
-            e.preventDefault();
-            setDeferredPrompt(e as BeforeInstallPromptEvent);
+        setDeferredPrompt(window.__coreDeferredPrompt ?? null);
+
+        const onInstallReady = () => {
+            setDeferredPrompt(window.__coreDeferredPrompt ?? null);
         };
         const onAppInstalled = () => {
             setDeferredPrompt(null);
             setIsStandalone(true);
         };
 
-        window.addEventListener("beforeinstallprompt", handler);
+        window.addEventListener("core:pwa-install-ready", onInstallReady);
+        window.addEventListener("core:pwa-installed", onAppInstalled);
         window.addEventListener("appinstalled", onAppInstalled);
         return () => {
-            window.removeEventListener("beforeinstallprompt", handler);
+            window.removeEventListener("core:pwa-install-ready", onInstallReady);
+            window.removeEventListener("core:pwa-installed", onAppInstalled);
             window.removeEventListener("appinstalled", onAppInstalled);
         };
     }, []);
@@ -80,7 +90,7 @@ export function InstallCard() {
         const timeout = window.setTimeout(() => {
             setShowManualGuide(true);
             setInstallRequested(false);
-        }, 1500);
+        }, 8000);
 
         return () => window.clearTimeout(timeout);
     }, [installRequested, platform, deferredPrompt]);
