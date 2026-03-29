@@ -26,7 +26,6 @@ export function InstallCard() {
     const [isStandalone, setIsStandalone] = useState(true);
     const [showIosGuide, setShowIosGuide] = useState(false);
     const [showManualGuide, setShowManualGuide] = useState(false);
-    const [installRequested, setInstallRequested] = useState(false);
 
     const openInstallPrompt = useCallback(async (promptEvent: BeforeInstallPromptEvent) => {
         try {
@@ -37,8 +36,6 @@ export function InstallCard() {
             setShowManualGuide(false);
         } catch {
             setShowManualGuide(true);
-        } finally {
-            setInstallRequested(false);
         }
     }, []);
 
@@ -80,21 +77,6 @@ export function InstallCard() {
         };
     }, []);
 
-    useEffect(() => {
-        if (!installRequested || platform === "ios" || !deferredPrompt) return;
-        void openInstallPrompt(deferredPrompt);
-    }, [installRequested, platform, deferredPrompt, openInstallPrompt]);
-
-    useEffect(() => {
-        if (!installRequested || platform === "ios" || deferredPrompt) return;
-        const timeout = window.setTimeout(() => {
-            setShowManualGuide(true);
-            setInstallRequested(false);
-        }, 8000);
-
-        return () => window.clearTimeout(timeout);
-    }, [installRequested, platform, deferredPrompt]);
-
     const handleInstallClick = async () => {
         if (platform === "ios") {
             setShowIosGuide((prev) => !prev);
@@ -102,8 +84,7 @@ export function InstallCard() {
         }
 
         if (!deferredPrompt) {
-            setShowManualGuide(false);
-            setInstallRequested(true);
+            setShowManualGuide(true);
             return;
         }
 
