@@ -13,6 +13,12 @@ type Exercise = {
     name: string;
     category: string;
     order: number;
+    globalExercise: {
+        id: string;
+        name: string;
+        category: string;
+        muscleGroup: string;
+    } | null;
 };
 
 type Routine = {
@@ -37,8 +43,8 @@ type Props = {
 export function WorkoutSession({ routine, onFinish }: Props) {
     const [sets, setSets] = useState<Record<string, SetEntry[]>>(() => {
         const initial: Record<string, SetEntry[]> = {};
-        for (const ex of routine.exercises) {
-            initial[ex.id] = [{ exerciseId: ex.id, setNumber: 1, reps: 10, weight: 0 }];
+        for (const exercise of routine.exercises) {
+            initial[exercise.id] = [{ exerciseId: exercise.id, setNumber: 1, reps: 10, weight: 0 }];
         }
         return initial;
     });
@@ -70,11 +76,11 @@ export function WorkoutSession({ routine, onFinish }: Props) {
         }));
     }
 
-    function updateSet(exerciseId: string, setIdx: number, field: "reps" | "weight", value: number) {
+    function updateSet(exerciseId: string, setIndex: number, field: "reps" | "weight", value: number) {
         setSets((prev) => ({
             ...prev,
-            [exerciseId]: (prev[exerciseId] || []).map((s, i) =>
-                i === setIdx ? { ...s, [field]: value } : s
+            [exerciseId]: (prev[exerciseId] || []).map((set, index) =>
+                index === setIndex ? { ...set, [field]: value } : set
             ),
         }));
     }
@@ -102,11 +108,11 @@ export function WorkoutSession({ routine, onFinish }: Props) {
                     dateISO,
                     rpe,
                     notes: notes || undefined,
-                    sets: allSets.map((s) => ({
-                        exerciseId: s.exerciseId,
-                        setNumber: s.setNumber,
-                        reps: s.reps || undefined,
-                        weight: s.weight || undefined,
+                    sets: allSets.map((set) => ({
+                        exerciseId: set.exerciseId,
+                        setNumber: set.setNumber,
+                        reps: set.reps || undefined,
+                        weight: set.weight || undefined,
                     })),
                 });
             }
@@ -118,7 +124,7 @@ export function WorkoutSession({ routine, onFinish }: Props) {
     const totalSets = Object.values(sets).flat().length;
     const totalVolume = Object.values(sets)
         .flat()
-        .reduce((sum, s) => sum + (s.reps * s.weight), 0);
+        .reduce((sum, set) => sum + set.reps * set.weight, 0);
 
     return (
         <motion.div
@@ -126,7 +132,6 @@ export function WorkoutSession({ routine, onFinish }: Props) {
             animate={{ opacity: 1, x: 0 }}
             className="space-y-6"
         >
-            {/* Header */}
             <div className="flex items-center gap-3">
                 <button
                     onClick={onFinish}
@@ -145,7 +150,6 @@ export function WorkoutSession({ routine, onFinish }: Props) {
                 </div>
             </div>
 
-            {/* Exercises */}
             <div className="space-y-4">
                 {routine.exercises.map((exercise) => (
                     <div
@@ -155,7 +159,12 @@ export function WorkoutSession({ routine, onFinish }: Props) {
                         <div className="flex items-center justify-between px-4 py-3 border-b border-border/30">
                             <div className="flex items-center gap-2">
                                 <Dumbbell className="h-3.5 w-3.5 text-orange-400" />
-                                <span className="font-medium text-sm">{exercise.name}</span>
+                                <div>
+                                    <span className="font-medium text-sm">{exercise.globalExercise?.name ?? exercise.name}</span>
+                                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                                        {exercise.globalExercise?.muscleGroup ?? exercise.category}
+                                    </p>
+                                </div>
                             </div>
                             <div className="flex items-center gap-1">
                                 <button
@@ -174,31 +183,29 @@ export function WorkoutSession({ routine, onFinish }: Props) {
                             </div>
                         </div>
 
-                        {/* Set header */}
                         <div className="grid grid-cols-[40px_1fr_1fr] gap-2 px-4 py-1.5 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
                             <span>Set</span>
                             <span>Reps</span>
                             <span>Peso (kg)</span>
                         </div>
 
-                        {/* Sets */}
-                        {(sets[exercise.id] || []).map((set, idx) => (
-                            <div key={idx} className="grid grid-cols-[40px_1fr_1fr] gap-2 px-4 py-1.5">
+                        {(sets[exercise.id] || []).map((set, index) => (
+                            <div key={index} className="grid grid-cols-[40px_1fr_1fr] gap-2 px-4 py-1.5">
                                 <span className="flex items-center justify-center text-xs font-bold text-muted-foreground">
-                                    {idx + 1}
+                                    {index + 1}
                                 </span>
                                 <input
                                     type="number"
                                     value={set.reps}
-                                    onChange={(e) => updateSet(exercise.id, idx, "reps", Number(e.target.value))}
-                                    className="rounded-md border border-border/50 bg-background px-2 py-1.5 text-sm text-center focus:outline-none focus:ring-1 focus:ring-orange-500/30"
+                                    onChange={(event) => updateSet(exercise.id, index, "reps", Number(event.target.value))}
+                                    className="rounded-md border border-border/50 bg-background px-2 py-1.5 text-sm text-center font-[family-name:var(--font-geist-mono)] focus:outline-none focus:ring-1 focus:ring-orange-500/30"
                                     min={0}
                                 />
                                 <input
                                     type="number"
                                     value={set.weight}
-                                    onChange={(e) => updateSet(exercise.id, idx, "weight", Number(e.target.value))}
-                                    className="rounded-md border border-border/50 bg-background px-2 py-1.5 text-sm text-center focus:outline-none focus:ring-1 focus:ring-orange-500/30"
+                                    onChange={(event) => updateSet(exercise.id, index, "weight", Number(event.target.value))}
+                                    className="rounded-md border border-border/50 bg-background px-2 py-1.5 text-sm text-center font-[family-name:var(--font-geist-mono)] focus:outline-none focus:ring-1 focus:ring-orange-500/30"
                                     min={0}
                                     step={0.5}
                                 />
@@ -208,7 +215,6 @@ export function WorkoutSession({ routine, onFinish }: Props) {
                 ))}
             </div>
 
-            {/* RPE & Notes */}
             <div className="space-y-3">
                 <div>
                     <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
@@ -219,7 +225,7 @@ export function WorkoutSession({ routine, onFinish }: Props) {
                         min={1}
                         max={10}
                         value={rpe}
-                        onChange={(e) => setRpe(Number(e.target.value))}
+                        onChange={(event) => setRpe(Number(event.target.value))}
                         className="w-full accent-orange-500"
                     />
                 </div>
@@ -227,23 +233,23 @@ export function WorkoutSession({ routine, onFinish }: Props) {
                     <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Notas (opcional)</label>
                     <textarea
                         value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                        placeholder="¿Cómo te sentiste?"
+                        onChange={(event) => setNotes(event.target.value)}
+                        placeholder="Como te sentiste?"
                         rows={2}
                         className="w-full rounded-lg border border-border/50 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/30 resize-none"
                     />
                 </div>
             </div>
 
-            {/* Finish Button */}
             <button
                 onClick={handleFinish}
                 disabled={isPending || totalSets === 0}
                 className="w-full flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-orange-500 to-red-500 py-3 text-sm font-bold text-white transition-all hover:from-orange-600 hover:to-red-600 disabled:opacity-40"
             >
                 <Check className="h-4 w-4" />
-                {isPending ? "Guardando…" : "Finalizar Entrenamiento"}
+                {isPending ? "Guardando..." : "Finalizar Entrenamiento"}
             </button>
         </motion.div>
     );
 }
+

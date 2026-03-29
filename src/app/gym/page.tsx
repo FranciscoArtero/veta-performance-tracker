@@ -1,18 +1,23 @@
 export const dynamic = 'force-dynamic';
 
-import { getRoutines, getWorkoutLogs } from "@/app/actions/gym";
+import { getExerciseProgressSummaries, getRoutines, getWorkoutLogs } from "@/app/actions/gym";
 import { GymClient } from "@/components/gym/GymClient";
 
 export default async function GymPage() {
     try {
-        const [routines, recentLogs] = await Promise.all([
+        const [routines, recentLogs, exerciseProgress] = await Promise.all([
             getRoutines(),
             getWorkoutLogs(20),
+            getExerciseProgressSummaries(12),
         ]);
 
         return (
             <div className="p-4 md:p-6 lg:p-8">
-                <GymClient routines={routines} recentLogs={recentLogs} />
+                <GymClient
+                    routines={routines}
+                    recentLogs={recentLogs}
+                    exerciseProgress={exerciseProgress}
+                />
             </div>
         );
     } catch (error: unknown) {

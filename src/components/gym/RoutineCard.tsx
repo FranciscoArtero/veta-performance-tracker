@@ -13,10 +13,27 @@ type Props = {
         name: string;
         description: string | null;
         color: string;
-        exercises: { id: string; name: string; category: string }[];
+        focusType: "STRENGTH" | "HYPERTROPHY" | "ENDURANCE";
+        exercises: {
+            id: string;
+            name: string;
+            category: string;
+            globalExercise: {
+                id: string;
+                name: string;
+                category: string;
+                muscleGroup: string;
+            } | null;
+        }[];
         _count: { logs: number };
     };
     onStart: () => void;
+};
+
+const FOCUS_LABEL: Record<Props["routine"]["focusType"], string> = {
+    STRENGTH: "Fuerza",
+    HYPERTROPHY: "Hipertrofia",
+    ENDURANCE: "Resistencia",
 };
 
 export function RoutineCard({ routine, onStart }: Props) {
@@ -25,7 +42,8 @@ export function RoutineCard({ routine, onStart }: Props) {
     const { isOnline, refreshPending } = useNetworkStatus();
 
     function handleDelete() {
-        if (!confirm("¿Eliminar esta rutina?")) return;
+        if (!confirm("Eliminar esta rutina?")) return;
+
         startTransition(async () => {
             if (!isOnline) {
                 await addPendingOp("DELETE_ROUTINE", { routineId: routine.id });
@@ -39,21 +57,14 @@ export function RoutineCard({ routine, onStart }: Props) {
 
     return (
         <div className="group relative rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm overflow-hidden transition-all hover:border-border hover:shadow-lg">
-            {/* Top accent bar */}
-            <div
-                className="h-1 w-full"
-                style={{ backgroundColor: routine.color }}
-            />
+            <div className="h-1 w-full" style={{ backgroundColor: routine.color }} />
 
             <div className="p-5 space-y-4">
-                {/* Header */}
                 <div className="flex items-start justify-between">
                     <div className="space-y-1">
                         <h3 className="font-semibold text-base leading-tight">{routine.name}</h3>
                         {routine.description && (
-                            <p className="text-xs text-muted-foreground line-clamp-1">
-                                {routine.description}
-                            </p>
+                            <p className="text-xs text-muted-foreground line-clamp-1">{routine.description}</p>
                         )}
                     </div>
                     <button
@@ -66,14 +77,18 @@ export function RoutineCard({ routine, onStart }: Props) {
                     </button>
                 </div>
 
-                {/* Exercise names */}
+                <div className="inline-flex rounded-md border border-orange-400/25 bg-orange-500/10 px-2 py-1 text-[10px] uppercase tracking-wider text-orange-300">
+                    {FOCUS_LABEL[routine.focusType]}
+                </div>
+
                 {routine.exercises.length > 0 && (
                     <p className="text-xs text-muted-foreground line-clamp-2">
-                        {routine.exercises.map(e => e.name).join(" · ")}
+                        {routine.exercises
+                            .map((exercise) => exercise.globalExercise?.name ?? exercise.name)
+                            .join(" · ")}
                     </p>
                 )}
 
-                {/* Stats */}
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1">
                         <Dumbbell className="h-3 w-3" />
@@ -82,7 +97,6 @@ export function RoutineCard({ routine, onStart }: Props) {
                     <span>{routine._count.logs} sesiones</span>
                 </div>
 
-                {/* Start Button */}
                 <button
                     onClick={onStart}
                     className="flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-medium transition-all text-white"
@@ -95,3 +109,4 @@ export function RoutineCard({ routine, onStart }: Props) {
         </div>
     );
 }
+

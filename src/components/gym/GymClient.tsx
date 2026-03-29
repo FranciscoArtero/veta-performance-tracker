@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Dumbbell, Plus, History } from "lucide-react";
+import { Dumbbell, Plus, History, ChevronRight, LineChart } from "lucide-react";
 import { RoutineCard } from "./RoutineCard";
 import { CreateRoutineDialog } from "./CreateRoutineDialog";
 import { WorkoutSession } from "./WorkoutSession";
@@ -12,6 +13,12 @@ type Exercise = {
     name: string;
     category: string;
     order: number;
+    globalExercise: {
+        id: string;
+        name: string;
+        category: string;
+        muscleGroup: string;
+    } | null;
 };
 
 type Routine = {
@@ -19,6 +26,7 @@ type Routine = {
     name: string;
     description: string | null;
     color: string;
+    focusType: "STRENGTH" | "HYPERTROPHY" | "ENDURANCE";
     exercises: Exercise[];
     _count: { logs: number };
 };
@@ -34,25 +42,48 @@ type WorkoutLogEntry = {
         setNumber: number;
         reps: number | null;
         weight: number | null;
-        exercise: { name: string; category: string };
+        exercise: {
+            id: string;
+            name: string;
+            category: string;
+            globalExercise: {
+                id: string;
+                name: string;
+                category: string;
+                muscleGroup: string;
+            } | null;
+        };
     }[];
+};
+
+type ExerciseProgress = {
+    id: string;
+    name: string;
+    muscleGroup: string;
+    category: string;
+    lastTrainedAt: Date | null;
+    bestWeight: number;
+    bestEffectiveWeight: number;
+    lastWeight: number | null;
+    totalSessions: number;
 };
 
 type Props = {
     routines: Routine[];
     recentLogs: WorkoutLogEntry[];
+    exerciseProgress: ExerciseProgress[];
 };
 
 const fadeIn = {
     hidden: { opacity: 0, y: 12 },
-    visible: (i: number) => ({
+    visible: (index: number) => ({
         opacity: 1,
         y: 0,
-        transition: { delay: i * 0.06, duration: 0.35 },
+        transition: { delay: index * 0.06, duration: 0.35 },
     }),
 };
 
-export function GymClient({ routines, recentLogs }: Props) {
+export function GymClient({ routines, recentLogs, exerciseProgress }: Props) {
     const [showCreate, setShowCreate] = useState(false);
     const [activeRoutine, setActiveRoutine] = useState<Routine | null>(null);
     const [view, setView] = useState<"routines" | "history">("routines");
@@ -68,7 +99,6 @@ export function GymClient({ routines, recentLogs }: Props) {
 
     return (
         <div className="space-y-6 md:space-y-8">
-            {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="space-y-1">
                     <h1 className="text-2xl font-bold tracking-tight lg:text-3xl flex items-center gap-2">
@@ -97,39 +127,88 @@ export function GymClient({ routines, recentLogs }: Props) {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+                        className="space-y-6"
                     >
-                        {routines.map((routine, i) => (
-                            <motion.div
-                                key={routine.id}
-                                custom={i}
+                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                            {routines.map((routine, index) => (
+                                <motion.div
+                                    key={routine.id}
+                                    custom={index}
+                                    variants={fadeIn}
+                                    initial="hidden"
+                                    animate="visible"
+                                >
+                                    <RoutineCard
+                                        routine={routine}
+                                        onStart={() => setActiveRoutine(routine)}
+                                    />
+                                </motion.div>
+                            ))}
+
+                            <motion.button
+                                custom={routines.length}
                                 variants={fadeIn}
                                 initial="hidden"
                                 animate="visible"
+                                onClick={() => setShowCreate(true)}
+                                className="group flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border/50 p-8 transition-all hover:border-orange-500/40 hover:bg-orange-500/5 min-h-[160px]"
                             >
-                                <RoutineCard
-                                    routine={routine}
-                                    onStart={() => setActiveRoutine(routine)}
-                                />
-                            </motion.div>
-                        ))}
+                                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500/20 to-red-500/20 group-hover:from-orange-500/30 group-hover:to-red-500/30 transition-all">
+                                    <Plus className="h-5 w-5 text-orange-400" />
+                                </div>
+                                <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+                                    Nueva Rutina
+                                </span>
+                            </motion.button>
+                        </div>
 
-                        {/* Add Routine Card */}
-                        <motion.button
-                            custom={routines.length}
-                            variants={fadeIn}
-                            initial="hidden"
-                            animate="visible"
-                            onClick={() => setShowCreate(true)}
-                            className="group flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border/50 p-8 transition-all hover:border-orange-500/40 hover:bg-orange-500/5 min-h-[160px]"
-                        >
-                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500/20 to-red-500/20 group-hover:from-orange-500/30 group-hover:to-red-500/30 transition-all">
-                                <Plus className="h-5 w-5 text-orange-400" />
+                        <section className="space-y-3">
+                            <div className="flex items-center gap-2">
+                                <LineChart className="h-4 w-4 text-cyan-300" />
+                                <h2 className="text-sm font-semibold">Evolucion por ejercicio</h2>
                             </div>
-                            <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
-                                Nueva Rutina
-                            </span>
-                        </motion.button>
+
+                            {exerciseProgress.length === 0 ? (
+                                <div className="rounded-xl border border-border/50 bg-card/40 p-4 text-xs text-muted-foreground">
+                                    Aun no hay ejercicios con historial para graficar.
+                                </div>
+                            ) : (
+                                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                    {exerciseProgress.map((exercise) => (
+                                        <Link
+                                            key={exercise.id}
+                                            href={`/gym/exercise/${exercise.id}`}
+                                            className="group rounded-xl border border-border/50 bg-card/50 p-4 hover:border-cyan-300/40 transition-all"
+                                        >
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="min-w-0">
+                                                    <p className="text-sm font-semibold truncate">{exercise.name}</p>
+                                                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                                                        {exercise.muscleGroup} · {exercise.category}
+                                                    </p>
+                                                </div>
+                                                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-cyan-300 transition-colors" />
+                                            </div>
+
+                                            <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                                                <div className="rounded-lg border border-border/40 bg-background/30 px-2 py-1.5">
+                                                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Top E1RM</p>
+                                                    <p className="font-[family-name:var(--font-geist-mono)] text-sm text-cyan-200">
+                                                        {exercise.bestEffectiveWeight.toFixed(1)} kg
+                                                    </p>
+                                                </div>
+                                                <div className="rounded-lg border border-border/40 bg-background/30 px-2 py-1.5">
+                                                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Top Peso</p>
+                                                    <p className="font-[family-name:var(--font-geist-mono)] text-sm">
+                                                        {exercise.bestWeight.toFixed(1)} kg
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </Link>
+                                    ))}
+                                </div>
+                            )}
+                        </section>
                     </motion.div>
                 ) : (
                     <motion.div
@@ -141,18 +220,25 @@ export function GymClient({ routines, recentLogs }: Props) {
                     >
                         {recentLogs.length === 0 ? (
                             <div className="text-center py-12 text-muted-foreground text-sm">
-                                Todavía no registraste entrenamientos.
+                                Todavia no registraste entrenamientos.
                             </div>
                         ) : (
                             recentLogs.map((log) => {
-                                const d = new Date(log.date);
-                                const dateStr = d.toLocaleDateString("es-AR", {
+                                const date = new Date(log.date);
+                                const dateLabel = date.toLocaleDateString("es-AR", {
                                     weekday: "short",
                                     day: "numeric",
                                     month: "short",
                                 });
                                 const totalSets = log.sets.length;
-                                const exercises = Array.from(new Set(log.sets.map(s => s.exercise.name)));
+                                const exercises = Array.from(
+                                    new Set(
+                                        log.sets.map(
+                                            (set) => set.exercise.globalExercise?.name ?? set.exercise.name
+                                        )
+                                    )
+                                );
+
                                 return (
                                     <div
                                         key={log.id}
@@ -169,7 +255,7 @@ export function GymClient({ routines, recentLogs }: Props) {
                                             </p>
                                         </div>
                                         <div className="text-right shrink-0">
-                                            <p className="text-xs font-medium">{dateStr}</p>
+                                            <p className="text-xs font-medium">{dateLabel}</p>
                                             <p className="text-[10px] text-muted-foreground">
                                                 {totalSets} series{log.rpe ? ` · RPE ${log.rpe}` : ""}
                                             </p>
@@ -186,3 +272,4 @@ export function GymClient({ routines, recentLogs }: Props) {
         </div>
     );
 }
+

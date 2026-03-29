@@ -150,11 +150,30 @@ model Achievement {
 // GYM MODELS
 // ============================================
 
+enum FocusType {
+  STRENGTH
+  HYPERTROPHY
+  ENDURANCE
+}
+
+model GlobalExercise {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  muscleGroup String
+  category    String
+  exercises   Exercise[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@map("global_exercises")
+}
+
 model WorkoutRoutine {
   id          String       @id @default(cuid())
   name        String
   description String?
   color       String       @default("#f97316") // orange
+  focusType   FocusType    @default(HYPERTROPHY)
   userId      String
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   exercises   Exercise[]
@@ -167,16 +186,20 @@ model WorkoutRoutine {
 }
 
 model Exercise {
-  id        String         @id @default(cuid())
-  name      String
-  category  String         @default("general") // chest, back, legs, shoulders, arms, core, cardio
-  order     Int            @default(0)
-  routineId String
-  routine   WorkoutRoutine @relation(fields: [routineId], references: [id], onDelete: Cascade)
-  sets      ExerciseSet[]
-  createdAt DateTime       @default(now())
+  id               String          @id @default(cuid())
+  name             String
+  category         String          @default("general") // chest, back, legs, shoulders, arms, core, cardio
+  order            Int             @default(0)
+  routineId        String
+  routine          WorkoutRoutine  @relation(fields: [routineId], references: [id], onDelete: Cascade)
+  globalExerciseId String?
+  globalExercise   GlobalExercise? @relation(fields: [globalExerciseId], references: [id], onDelete: SetNull)
+  sets             ExerciseSet[]
+  createdAt        DateTime        @default(now())
 
   @@index([routineId])
+  @@index([globalExerciseId])
+  @@unique([routineId, globalExerciseId])
   @@map("exercises")
 }
 

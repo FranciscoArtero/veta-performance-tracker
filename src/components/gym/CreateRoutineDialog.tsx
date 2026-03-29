@@ -13,45 +13,96 @@ type Props = {
     onClose: () => void;
 };
 
+type FocusType = "STRENGTH" | "HYPERTROPHY" | "ENDURANCE";
+
+type ExerciseInput = {
+    name: string;
+    category: string;
+    muscleGroup: string;
+};
+
 const COLORS = [
     "#f97316", "#ef4444", "#8b5cf6", "#06b6d4",
     "#10b981", "#f59e0b", "#ec4899", "#6366f1",
+];
+
+const FOCUS_TYPES: { value: FocusType; label: string }[] = [
+    { value: "STRENGTH", label: "Fuerza" },
+    { value: "HYPERTROPHY", label: "Hipertrofia" },
+    { value: "ENDURANCE", label: "Resistencia" },
+];
+
+const CATEGORIES = ["compound", "isolation", "bodyweight", "cardio", "mobility", "general"];
+const MUSCLE_GROUPS = [
+    "chest",
+    "back",
+    "legs",
+    "shoulders",
+    "arms",
+    "core",
+    "full body",
+    "general",
 ];
 
 export function CreateRoutineDialog({ open, onClose }: Props) {
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
     const [color, setColor] = useState(COLORS[0]);
-    const [exercises, setExercises] = useState<string[]>([]);
+    const [focusType, setFocusType] = useState<FocusType>("HYPERTROPHY");
+
+    const [exercises, setExercises] = useState<ExerciseInput[]>([]);
     const [newExName, setNewExName] = useState("");
+    const [newCategory, setNewCategory] = useState("general");
+    const [newMuscleGroup, setNewMuscleGroup] = useState("general");
+
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
     const { isOnline, refreshPending } = useNetworkStatus();
 
     function addExercise() {
-        if (!newExName.trim()) return;
-        setExercises([...exercises, newExName.trim()]);
+        const cleanName = newExName.trim();
+        if (!cleanName) return;
+
+        const exists = exercises.some(
+            (exercise) => exercise.name.toLowerCase() === cleanName.toLowerCase()
+        );
+        if (exists) {
+            setNewExName("");
+            return;
+        }
+
+        setExercises([
+            ...exercises,
+            {
+                name: cleanName,
+                category: newCategory,
+                muscleGroup: newMuscleGroup,
+            },
+        ]);
         setNewExName("");
     }
 
-    function removeExercise(idx: number) {
-        setExercises(exercises.filter((_, i) => i !== idx));
+    function removeExercise(index: number) {
+        setExercises(exercises.filter((_, i) => i !== index));
     }
 
     function handleSubmit() {
         if (!name.trim() || exercises.length === 0) return;
+
         startTransition(async () => {
             if (!isOnline) {
                 await addPendingOp("CREATE_ROUTINE", {
                     name: name.trim(),
                     description: description || "",
                     color,
-                    exercises: JSON.stringify(exercises.map(name => ({ name, category: "general" }))),
+                    focusType,
+                    exercises: JSON.stringify(exercises),
                 });
                 await refreshPending();
             } else {
-                await createRoutine(name.trim(), description || null, color, exercises.map(name => ({ name, category: "general" })));
+                await createRoutine(name.trim(), description || null, color, focusType, exercises);
             }
+
             router.refresh();
             resetAndClose();
         });
@@ -61,8 +112,11 @@ export function CreateRoutineDialog({ open, onClose }: Props) {
         setName("");
         setDescription("");
         setColor(COLORS[0]);
+        setFocusType("HYPERTROPHY");
         setExercises([]);
         setNewExName("");
+        setNewCategory("general");
+        setNewMuscleGroup("general");
         onClose();
     }
 
@@ -70,7 +124,6 @@ export function CreateRoutineDialog({ open, onClose }: Props) {
         <AnimatePresence>
             {open && (
                 <>
-                    {/* Overlay */}
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -79,7 +132,6 @@ export function CreateRoutineDialog({ open, onClose }: Props) {
                         className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
                     />
 
-                    {/* Dialog — centered with flexbox */}
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -87,7 +139,6 @@ export function CreateRoutineDialog({ open, onClose }: Props) {
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
                             className="pointer-events-auto w-full max-w-lg rounded-2xl border border-border/50 bg-card p-6 shadow-2xl max-h-[85vh] overflow-y-auto"
                         >
-                            {/* Header */}
                             <div className="flex items-center justify-between mb-5">
                                 <h2 className="text-lg font-bold flex items-center gap-2">
                                     <Dumbbell className="h-5 w-5 text-orange-400" />
@@ -99,44 +150,64 @@ export function CreateRoutineDialog({ open, onClose }: Props) {
                             </div>
 
                             <div className="space-y-4">
-                                {/* Name */}
                                 <div>
                                     <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Nombre</label>
                                     <input
                                         value={name}
-                                        onChange={(e) => setName(e.target.value)}
+                                        onChange={(event) => setName(event.target.value)}
                                         placeholder="Ej: Push Day, Upper Body..."
                                         className="w-full rounded-lg border border-border/50 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/30"
                                     />
                                 </div>
 
-                                {/* Description */}
                                 <div>
-                                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Descripción (opcional)</label>
+                                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Descripcion (opcional)</label>
                                     <input
                                         value={description}
-                                        onChange={(e) => setDescription(e.target.value)}
-                                        placeholder="Ej: Pecho, hombros y tríceps"
+                                        onChange={(event) => setDescription(event.target.value)}
+                                        placeholder="Ej: Pecho, hombros y triceps"
                                         className="w-full rounded-lg border border-border/50 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/30"
                                     />
                                 </div>
 
-                                {/* Color */}
+                                <div>
+                                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Foco de la rutina</label>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {FOCUS_TYPES.map((option) => (
+                                            <button
+                                                key={option.value}
+                                                type="button"
+                                                onClick={() => setFocusType(option.value)}
+                                                className={`rounded-lg border px-2 py-2 text-xs font-medium transition-all ${
+                                                    focusType === option.value
+                                                        ? "border-orange-400/60 bg-orange-500/15 text-orange-300"
+                                                        : "border-border/50 bg-background text-muted-foreground hover:text-foreground"
+                                                }`}
+                                            >
+                                                {option.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
                                 <div>
                                     <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Color</label>
                                     <div className="flex gap-2">
-                                        {COLORS.map((c) => (
+                                        {COLORS.map((paletteColor) => (
                                             <button
-                                                key={c}
-                                                onClick={() => setColor(c)}
-                                                className={`h-7 w-7 rounded-full transition-all ${color === c ? "ring-2 ring-offset-2 ring-offset-card scale-110" : "opacity-60 hover:opacity-100"}`}
-                                                style={{ backgroundColor: c }}
+                                                key={paletteColor}
+                                                onClick={() => setColor(paletteColor)}
+                                                className={`h-7 w-7 rounded-full transition-all ${
+                                                    color === paletteColor
+                                                        ? "ring-2 ring-offset-2 ring-offset-card scale-110"
+                                                        : "opacity-60 hover:opacity-100"
+                                                }`}
+                                                style={{ backgroundColor: paletteColor }}
                                             />
                                         ))}
                                     </div>
                                 </div>
 
-                                {/* Exercises */}
                                 <div>
                                     <label className="text-xs font-medium text-muted-foreground mb-2 block">
                                         Ejercicios ({exercises.length})
@@ -144,14 +215,22 @@ export function CreateRoutineDialog({ open, onClose }: Props) {
 
                                     {exercises.length > 0 && (
                                         <div className="space-y-1.5 mb-3">
-                                            {exercises.map((ex, i) => (
+                                            {exercises.map((exercise, index) => (
                                                 <div
-                                                    key={i}
+                                                    key={`${exercise.name}-${index}`}
                                                     className="flex items-center gap-2 rounded-lg bg-black/5 dark:bg-white/5 px-3 py-2"
                                                 >
-                                                    <span className="text-xs text-muted-foreground w-5">{i + 1}.</span>
-                                                    <span className="text-sm flex-1">{ex}</span>
-                                                    <button onClick={() => removeExercise(i)} className="text-muted-foreground hover:text-red-400">
+                                                    <span className="text-xs text-muted-foreground w-5">{index + 1}.</span>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm truncate">{exercise.name}</p>
+                                                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                                                            {exercise.muscleGroup} · {exercise.category}
+                                                        </p>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => removeExercise(index)}
+                                                        className="text-muted-foreground hover:text-red-400"
+                                                    >
                                                         <Trash2 className="h-3 w-3" />
                                                     </button>
                                                 </div>
@@ -159,15 +238,36 @@ export function CreateRoutineDialog({ open, onClose }: Props) {
                                         </div>
                                     )}
 
-                                    {/* Add exercise row */}
-                                    <div className="flex gap-2">
+                                    <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-2">
                                         <input
                                             value={newExName}
-                                            onChange={(e) => setNewExName(e.target.value)}
+                                            onChange={(event) => setNewExName(event.target.value)}
                                             placeholder="Ej: Press banca, Sentadilla..."
-                                            onKeyDown={(e) => e.key === "Enter" && addExercise()}
-                                            className="flex-1 rounded-lg border border-border/50 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/30"
+                                            onKeyDown={(event) => event.key === "Enter" && addExercise()}
+                                            className="rounded-lg border border-border/50 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/30"
                                         />
+                                        <select
+                                            value={newMuscleGroup}
+                                            onChange={(event) => setNewMuscleGroup(event.target.value)}
+                                            className="rounded-lg border border-border/50 bg-background px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500/30"
+                                        >
+                                            {MUSCLE_GROUPS.map((group) => (
+                                                <option key={group} value={group}>
+                                                    {group}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <select
+                                            value={newCategory}
+                                            onChange={(event) => setNewCategory(event.target.value)}
+                                            className="rounded-lg border border-border/50 bg-background px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500/30"
+                                        >
+                                            {CATEGORIES.map((category) => (
+                                                <option key={category} value={category}>
+                                                    {category}
+                                                </option>
+                                            ))}
+                                        </select>
                                         <button
                                             onClick={addExercise}
                                             disabled={!newExName.trim()}
@@ -178,13 +278,12 @@ export function CreateRoutineDialog({ open, onClose }: Props) {
                                     </div>
                                 </div>
 
-                                {/* Submit */}
                                 <button
                                     onClick={handleSubmit}
                                     disabled={!name.trim() || exercises.length === 0 || isPending}
                                     className="w-full rounded-lg bg-gradient-to-r from-orange-500 to-red-500 py-2.5 text-sm font-medium text-white transition-all hover:from-orange-600 hover:to-red-600 disabled:opacity-40"
                                 >
-                                    {isPending ? "Creando…" : "Crear Rutina"}
+                                    {isPending ? "Creando..." : "Crear Rutina"}
                                 </button>
                             </div>
                         </motion.div>
@@ -194,3 +293,4 @@ export function CreateRoutineDialog({ open, onClose }: Props) {
         </AnimatePresence>
     );
 }
+

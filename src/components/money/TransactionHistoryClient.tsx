@@ -185,7 +185,7 @@ export function TransactionHistoryClient({ transactions: initialTransactions, cu
                                         ))}
                                     </Pie>
                                     <RechartsTooltip 
-                                        formatter={(value: number | undefined) => formatARS(Number(value || 0))}
+                                        formatter={(value) => formatARS(Number(value || 0))}
                                         contentStyle={{ backgroundColor: '#09090b', borderColor: '#27272a', borderRadius: '12px', color: '#fff' }}
                                         itemStyle={{ color: '#fff' }}
                                     />

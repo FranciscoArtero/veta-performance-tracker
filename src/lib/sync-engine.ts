@@ -32,6 +32,7 @@ export async function flushPendingOps(): Promise<{ synced: number; failed: numbe
                         op.payload.name,
                         op.payload.description || null,
                         op.payload.color,
+                        (op.payload.focusType as "STRENGTH" | "HYPERTROPHY" | "ENDURANCE") || "HYPERTROPHY",
                         JSON.parse(op.payload.exercises || "[]"),
                     );
                     break;
