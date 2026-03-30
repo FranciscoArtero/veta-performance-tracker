@@ -20,8 +20,6 @@ type Props = {
                 id: string;
                 name: string;
                 muscleGroup: string;
-                currentWeightGoal: number | null;
-                goalDate: Date | null;
             };
         }[];
         _count: { logs: number };

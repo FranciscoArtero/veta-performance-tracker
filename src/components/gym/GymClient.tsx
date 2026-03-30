@@ -21,8 +21,6 @@ type Routine = {
             id: string;
             name: string;
             muscleGroup: string;
-            currentWeightGoal: number | null;
-            goalDate: Date | null;
         };
     }[];
     _count: { logs: number };
@@ -45,8 +43,6 @@ type WorkoutLogEntry = {
                 id: string;
                 name: string;
                 muscleGroup: string;
-                currentWeightGoal: number | null;
-                goalDate: Date | null;
             };
         };
     }[];
@@ -69,8 +65,6 @@ type GlobalExercise = {
     id: string;
     name: string;
     muscleGroup: string;
-    currentWeightGoal: number | null;
-    goalDate: Date | null;
 };
 
 type Props = {

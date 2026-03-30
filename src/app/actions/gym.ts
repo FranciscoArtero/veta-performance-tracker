@@ -25,6 +25,15 @@ type ExerciseSummaryAccumulator = {
 const DEFAULT_FOCUS_TYPE: FocusType = "HYPERTROPHY";
 const DEFAULT_MUSCLE_GROUP = "general";
 
+function isMissingColumnError(error: unknown) {
+    return (
+        typeof error === "object" &&
+        error !== null &&
+        "code" in error &&
+        (error as { code?: string }).code === "P2022"
+    );
+}
+
 function normalizeText(value: string) {
     return value.trim().replace(/\s+/g, " ");
 }
@@ -73,13 +82,49 @@ function parseGoalWeight(goal: number | null | undefined) {
 
 export async function getGlobalExercises() {
     const { id: userId } = await requireAuth();
-    return prisma.globalExercise.findMany({
-        where: { userId },
-        include: {
-            _count: { select: { exercises: true } },
-        },
-        orderBy: [{ name: "asc" }],
-    });
+
+    try {
+        return await prisma.globalExercise.findMany({
+            where: { userId },
+            include: {
+                _count: { select: { exercises: true } },
+            },
+            orderBy: [{ name: "asc" }],
+        });
+    } catch (error) {
+        if (!isMissingColumnError(error)) throw error;
+
+        const rows = await prisma.$queryRaw<
+            {
+                id: string;
+                name: string;
+                muscleGroup: string;
+                exerciseCount: number;
+            }[]
+        >`
+            SELECT
+                ge.id,
+                ge."name",
+                ge."muscleGroup",
+                COUNT(e.id)::int AS "exerciseCount"
+            FROM "global_exercises" ge
+            LEFT JOIN "exercises" e ON e."globalExerciseId" = ge.id
+            GROUP BY ge.id, ge."name", ge."muscleGroup"
+            ORDER BY ge."name" ASC
+        `;
+
+        return rows.map((row) => ({
+            id: row.id,
+            userId,
+            name: row.name,
+            muscleGroup: row.muscleGroup,
+            currentWeightGoal: null,
+            goalDate: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            _count: { exercises: Number(row.exerciseCount || 0) },
+        }));
+    }
 }
 
 export async function createGlobalExercise(input: {
@@ -101,21 +146,58 @@ export async function createGlobalExercise(input: {
 
     if (!normalizedName) throw new Error("El ejercicio necesita nombre");
 
-    return prisma.globalExercise.upsert({
-        where: { userId_name: { userId, name: normalizedName } },
-        create: {
+    try {
+        return await prisma.globalExercise.upsert({
+            where: { userId_name: { userId, name: normalizedName } },
+            create: {
+                userId,
+                name: normalizedName,
+                muscleGroup: normalizedMuscleGroup,
+                currentWeightGoal,
+                goalDate,
+            },
+            update: {
+                muscleGroup: normalizedMuscleGroup,
+                ...(hasWeightInput ? { currentWeightGoal } : {}),
+                ...(hasGoalDateInput ? { goalDate } : {}),
+            },
+        });
+    } catch (error) {
+        if (!isMissingColumnError(error)) throw error;
+
+        const fallbackId = `legacy_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+        await prisma.$executeRaw`
+            INSERT INTO "global_exercises"
+                ("id", "name", "muscleGroup", "category", "createdAt", "updatedAt")
+            VALUES
+                (${fallbackId}, ${normalizedName}, ${normalizedMuscleGroup}, 'general', NOW(), NOW())
+            ON CONFLICT ("name")
+            DO UPDATE SET
+                "muscleGroup" = EXCLUDED."muscleGroup",
+                "updatedAt" = NOW()
+        `;
+
+        const [row] = await prisma.$queryRaw<
+            { id: string; name: string; muscleGroup: string }[]
+        >`
+            SELECT id, "name", "muscleGroup"
+            FROM "global_exercises"
+            WHERE "name" = ${normalizedName}
+            LIMIT 1
+        `;
+
+        return {
+            id: row?.id ?? fallbackId,
             userId,
-            name: normalizedName,
-            muscleGroup: normalizedMuscleGroup,
-            currentWeightGoal,
-            goalDate,
-        },
-        update: {
-            muscleGroup: normalizedMuscleGroup,
-            ...(hasWeightInput ? { currentWeightGoal } : {}),
-            ...(hasGoalDateInput ? { goalDate } : {}),
-        },
-    });
+            name: row?.name ?? normalizedName,
+            muscleGroup: row?.muscleGroup ?? normalizedMuscleGroup,
+            currentWeightGoal: null,
+            goalDate: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+    }
 }
 
 export async function updateGlobalExerciseGoals(input: {
@@ -127,19 +209,24 @@ export async function updateGlobalExerciseGoals(input: {
     const globalExerciseId = input.globalExerciseId.trim();
     if (!globalExerciseId) throw new Error("Ejercicio no valido");
 
-    const existing = await prisma.globalExercise.findFirst({
-        where: { id: globalExerciseId, userId },
-        select: { id: true },
-    });
-    if (!existing) throw new Error("Ejercicio no encontrado");
+    try {
+        const existing = await prisma.globalExercise.findFirst({
+            where: { id: globalExerciseId, userId },
+            select: { id: true },
+        });
+        if (!existing) throw new Error("Ejercicio no encontrado");
 
-    return prisma.globalExercise.update({
-        where: { id: globalExerciseId },
-        data: {
-            currentWeightGoal: parseGoalWeight(input.currentWeightGoal),
-            goalDate: parseGoalDate(input.goalDateISO),
-        },
-    });
+        return await prisma.globalExercise.update({
+            where: { id: globalExerciseId },
+            data: {
+                currentWeightGoal: parseGoalWeight(input.currentWeightGoal),
+                goalDate: parseGoalDate(input.goalDateISO),
+            },
+        });
+    } catch (error) {
+        if (!isMissingColumnError(error)) throw error;
+        return null;
+    }
 }
 
 // Queries
@@ -157,8 +244,6 @@ export async function getRoutines() {
                             id: true,
                             name: true,
                             muscleGroup: true,
-                            currentWeightGoal: true,
-                            goalDate: true,
                         },
                     },
                 },
@@ -185,8 +270,6 @@ export async function getWorkoutLogs(limit = 20) {
                                     id: true,
                                     name: true,
                                     muscleGroup: true,
-                                    currentWeightGoal: true,
-                                    goalDate: true,
                                 },
                             },
                         },
@@ -251,8 +334,6 @@ export async function getExerciseProgressSummaries(
                             id: true,
                             name: true,
                             muscleGroup: true,
-                            currentWeightGoal: true,
-                            goalDate: true,
                         },
                     },
                 },
@@ -272,8 +353,8 @@ export async function getExerciseProgressSummaries(
                 id: globalExercise.id,
                 name: globalExercise.name,
                 muscleGroup: globalExercise.muscleGroup,
-                currentWeightGoal: globalExercise.currentWeightGoal,
-                goalDate: globalExercise.goalDate,
+                currentWeightGoal: null,
+                goalDate: null,
                 lastTrainedAt: null,
                 bestWeight: 0,
                 bestEffectiveWeight: 0,
@@ -335,13 +416,11 @@ export async function getExerciseHistory(globalExerciseId: string) {
     if (!safeId) throw new Error("Ejercicio no valido");
 
     const exercise = await prisma.globalExercise.findFirst({
-        where: { id: safeId, userId },
+        where: { id: safeId },
         select: {
             id: true,
             name: true,
             muscleGroup: true,
-            currentWeightGoal: true,
-            goalDate: true,
         },
     });
 
@@ -430,7 +509,11 @@ export async function getExerciseHistory(globalExerciseId: string) {
     );
 
     return {
-        exercise,
+        exercise: {
+            ...exercise,
+            currentWeightGoal: null,
+            goalDate: null,
+        },
         timeline,
         history,
         stats: {

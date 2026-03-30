@@ -16,8 +16,6 @@ type Exercise = {
         id: string;
         name: string;
         muscleGroup: string;
-        currentWeightGoal: number | null;
-        goalDate: Date | null;
     };
 };
 
