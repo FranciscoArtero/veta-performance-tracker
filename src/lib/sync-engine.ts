@@ -28,25 +28,57 @@ export async function flushPendingOps(): Promise<{ synced: number; failed: numbe
                     await deleteTask(op.payload.taskId);
                     break;
                 case "CREATE_ROUTINE":
+                    {
+                        const parsedExercises = JSON.parse(op.payload.exercises || "[]");
+                        const exerciseIds = Array.isArray(parsedExercises)
+                            ? parsedExercises
+                                .map((exercise) => {
+                                    if (typeof exercise === "string") return exercise;
+                                    if (exercise && typeof exercise.id === "string") return exercise.id;
+                                    if (exercise && typeof exercise.globalExerciseId === "string") {
+                                        return exercise.globalExerciseId;
+                                    }
+                                    return "";
+                                })
+                                .filter((id): id is string => Boolean(id))
+                            : [];
+
                     await createRoutine(
                         op.payload.name,
                         op.payload.description || null,
                         op.payload.color,
                         (op.payload.focusType as "STRENGTH" | "HYPERTROPHY" | "ENDURANCE") || "HYPERTROPHY",
-                        JSON.parse(op.payload.exercises || "[]"),
+                        exerciseIds,
                     );
+                    }
                     break;
                 case "DELETE_ROUTINE":
                     await deleteRoutine(op.payload.routineId);
                     break;
                 case "LOG_WORKOUT":
+                    {
+                        const parsedSets = JSON.parse(op.payload.sets || "[]");
+                        const normalizedSets = Array.isArray(parsedSets)
+                            ? parsedSets.map((set, index) => ({
+                                exerciseId: String(set?.exerciseId || ""),
+                                setNumber: Number(set?.setNumber || index + 1),
+                                reps: typeof set?.reps === "number" ? set.reps : undefined,
+                                weight: typeof set?.weight === "number" ? set.weight : undefined,
+                                durationSec:
+                                    typeof set?.durationSec === "number"
+                                        ? set.durationSec
+                                        : undefined,
+                            }))
+                            : [];
+
                     await logWorkout({
                         routineId: op.payload.routineId,
                         dateISO: op.payload.dateISO,
                         rpe: op.payload.rpe ? Number(op.payload.rpe) : undefined,
                         notes: op.payload.notes || undefined,
-                        sets: JSON.parse(op.payload.sets || "[]"),
+                        sets: normalizedSets,
                     });
+                    }
                     break;
             }
             await deletePendingOp(op.id);

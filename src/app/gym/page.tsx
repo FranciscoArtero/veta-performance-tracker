@@ -1,14 +1,20 @@
 export const dynamic = 'force-dynamic';
 
-import { getExerciseProgressSummaries, getRoutines, getWorkoutLogs } from "@/app/actions/gym";
+import {
+    getExerciseProgressSummaries,
+    getGlobalExercises,
+    getRoutines,
+    getWorkoutLogs,
+} from "@/app/actions/gym";
 import { GymClient } from "@/components/gym/GymClient";
 
 export default async function GymPage() {
     try {
-        const [routines, recentLogs, exerciseProgress] = await Promise.all([
+        const [routines, recentLogs, exerciseProgress, globalExercises] = await Promise.all([
             getRoutines(),
             getWorkoutLogs(20),
-            getExerciseProgressSummaries(12),
+            getExerciseProgressSummaries(100),
+            getGlobalExercises(),
         ]);
 
         return (
@@ -17,6 +23,7 @@ export default async function GymPage() {
                     routines={routines}
                     recentLogs={recentLogs}
                     exerciseProgress={exerciseProgress}
+                    globalExercises={globalExercises}
                 />
             </div>
         );

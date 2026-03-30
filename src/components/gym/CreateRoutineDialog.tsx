@@ -1,29 +1,37 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Plus, Trash2, Dumbbell } from "lucide-react";
-import { createRoutine } from "@/app/actions/gym";
+import { X, Plus, Trash2, Dumbbell, Search, Sparkles } from "lucide-react";
+import { createGlobalExercise, createRoutine } from "@/app/actions/gym";
 import { useNetworkStatus } from "@/components/providers/NetworkStatusProvider";
 import { addPendingOp } from "@/lib/offline-db";
+import { useMobileKeyboardAssist } from "@/hooks/useMobileKeyboardAssist";
+
+type FocusType = "STRENGTH" | "HYPERTROPHY" | "ENDURANCE";
+
+type GlobalExerciseOption = {
+    id: string;
+    name: string;
+    muscleGroup: string;
+};
 
 type Props = {
     open: boolean;
     onClose: () => void;
-};
-
-type FocusType = "STRENGTH" | "HYPERTROPHY" | "ENDURANCE";
-
-type ExerciseInput = {
-    name: string;
-    category: string;
-    muscleGroup: string;
+    globalExercises: GlobalExerciseOption[];
 };
 
 const COLORS = [
-    "#f97316", "#ef4444", "#8b5cf6", "#06b6d4",
-    "#10b981", "#f59e0b", "#ec4899", "#6366f1",
+    "#f97316",
+    "#ef4444",
+    "#8b5cf6",
+    "#06b6d4",
+    "#10b981",
+    "#f59e0b",
+    "#ec4899",
+    "#6366f1",
 ];
 
 const FOCUS_TYPES: { value: FocusType; label: string }[] = [
@@ -32,62 +40,100 @@ const FOCUS_TYPES: { value: FocusType; label: string }[] = [
     { value: "ENDURANCE", label: "Resistencia" },
 ];
 
-const CATEGORIES = ["compound", "isolation", "bodyweight", "cardio", "mobility", "general"];
-const MUSCLE_GROUPS = [
-    "chest",
-    "back",
-    "legs",
-    "shoulders",
-    "arms",
-    "core",
-    "full body",
-    "general",
-];
-
-export function CreateRoutineDialog({ open, onClose }: Props) {
+export function CreateRoutineDialog({ open, onClose, globalExercises }: Props) {
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
     const [color, setColor] = useState(COLORS[0]);
     const [focusType, setFocusType] = useState<FocusType>("HYPERTROPHY");
 
-    const [exercises, setExercises] = useState<ExerciseInput[]>([]);
-    const [newExName, setNewExName] = useState("");
-    const [newCategory, setNewCategory] = useState("general");
-    const [newMuscleGroup, setNewMuscleGroup] = useState("general");
+    const [library, setLibrary] = useState<GlobalExerciseOption[]>(globalExercises);
+    const [selectedExercises, setSelectedExercises] = useState<GlobalExerciseOption[]>([]);
+    const [search, setSearch] = useState("");
+    const [newExerciseMuscleGroup, setNewExerciseMuscleGroup] = useState("");
 
     const [isPending, startTransition] = useTransition();
+    const [isCreatingExercise, startCreateExerciseTransition] = useTransition();
     const router = useRouter();
     const { isOnline, refreshPending } = useNetworkStatus();
+    const { dismissKeyboard } = useMobileKeyboardAssist();
 
-    function addExercise() {
-        const cleanName = newExName.trim();
-        if (!cleanName) return;
+    useEffect(() => {
+        setLibrary(globalExercises);
+    }, [globalExercises]);
 
-        const exists = exercises.some(
-            (exercise) => exercise.name.toLowerCase() === cleanName.toLowerCase()
-        );
-        if (exists) {
-            setNewExName("");
-            return;
-        }
+    const selectedIds = useMemo(
+        () => new Set(selectedExercises.map((exercise) => exercise.id)),
+        [selectedExercises]
+    );
 
-        setExercises([
-            ...exercises,
-            {
-                name: cleanName,
-                category: newCategory,
-                muscleGroup: newMuscleGroup,
-            },
-        ]);
-        setNewExName("");
+    const searchLower = search.trim().toLowerCase();
+
+    const filteredLibrary = useMemo(() => {
+        return library
+            .filter((exercise) => !selectedIds.has(exercise.id))
+            .filter((exercise) => {
+                if (!searchLower) return true;
+                return (
+                    exercise.name.toLowerCase().includes(searchLower) ||
+                    exercise.muscleGroup.toLowerCase().includes(searchLower)
+                );
+            })
+            .slice(0, 8);
+    }, [library, searchLower, selectedIds]);
+
+    const exactMatch = useMemo(() => {
+        if (!searchLower) return false;
+        return library.some((exercise) => exercise.name.toLowerCase() === searchLower);
+    }, [library, searchLower]);
+
+    function addFromLibrary(exercise: GlobalExerciseOption) {
+        if (selectedIds.has(exercise.id)) return;
+        setSelectedExercises((previous) => [...previous, exercise]);
+        setSearch("");
     }
 
     function removeExercise(index: number) {
-        setExercises(exercises.filter((_, i) => i !== index));
+        setSelectedExercises((previous) => previous.filter((_, i) => i !== index));
+    }
+
+    function createAndAddExercise() {
+        const cleanName = search.trim();
+        const cleanMuscleGroup = newExerciseMuscleGroup.trim();
+        if (!cleanName || !cleanMuscleGroup || !isOnline) return;
+        dismissKeyboard();
+
+        startCreateExerciseTransition(async () => {
+            const created = await createGlobalExercise({
+                name: cleanName,
+                muscleGroup: cleanMuscleGroup,
+            });
+
+            const option: GlobalExerciseOption = {
+                id: created.id,
+                name: created.name,
+                muscleGroup: created.muscleGroup,
+            };
+
+            setLibrary((previous) => {
+                const deduped = previous.filter((exercise) => exercise.id !== option.id);
+                return [...deduped, option].sort((a, b) => a.name.localeCompare(b.name));
+            });
+            setSelectedExercises((previous) => {
+                if (previous.some((exercise) => exercise.id === option.id)) return previous;
+                return [...previous, option];
+            });
+
+            setSearch("");
+            setNewExerciseMuscleGroup("");
+            router.refresh();
+        });
     }
 
     function handleSubmit() {
-        if (!name.trim() || exercises.length === 0) return;
+        if (!name.trim() || selectedExercises.length === 0) return;
+        dismissKeyboard();
+
+        const exerciseIds = selectedExercises.map((exercise) => exercise.id);
 
         startTransition(async () => {
             if (!isOnline) {
@@ -96,11 +142,11 @@ export function CreateRoutineDialog({ open, onClose }: Props) {
                     description: description || "",
                     color,
                     focusType,
-                    exercises: JSON.stringify(exercises),
+                    exercises: JSON.stringify(exerciseIds),
                 });
                 await refreshPending();
             } else {
-                await createRoutine(name.trim(), description || null, color, focusType, exercises);
+                await createRoutine(name.trim(), description || null, color, focusType, exerciseIds);
             }
 
             router.refresh();
@@ -109,14 +155,14 @@ export function CreateRoutineDialog({ open, onClose }: Props) {
     }
 
     function resetAndClose() {
+        dismissKeyboard();
         setName("");
         setDescription("");
         setColor(COLORS[0]);
         setFocusType("HYPERTROPHY");
-        setExercises([]);
-        setNewExName("");
-        setNewCategory("general");
-        setNewMuscleGroup("general");
+        setSelectedExercises([]);
+        setSearch("");
+        setNewExerciseMuscleGroup("");
         onClose();
     }
 
@@ -137,21 +183,26 @@ export function CreateRoutineDialog({ open, onClose }: Props) {
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="pointer-events-auto w-full max-w-lg rounded-2xl border border-border/50 bg-card p-6 shadow-2xl max-h-[85vh] overflow-y-auto"
+                            className="pointer-events-auto w-full max-w-xl rounded-2xl border border-border/50 bg-card p-6 shadow-2xl max-h-[88vh] overflow-y-auto"
                         >
                             <div className="flex items-center justify-between mb-5">
                                 <h2 className="text-lg font-bold flex items-center gap-2">
                                     <Dumbbell className="h-5 w-5 text-orange-400" />
                                     Nueva Rutina
                                 </h2>
-                                <button onClick={resetAndClose} className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5">
+                                <button
+                                    onClick={resetAndClose}
+                                    className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5"
+                                >
                                     <X className="h-4 w-4" />
                                 </button>
                             </div>
 
                             <div className="space-y-4">
                                 <div>
-                                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Nombre</label>
+                                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                                        Nombre
+                                    </label>
                                     <input
                                         value={name}
                                         onChange={(event) => setName(event.target.value)}
@@ -161,7 +212,9 @@ export function CreateRoutineDialog({ open, onClose }: Props) {
                                 </div>
 
                                 <div>
-                                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Descripcion (opcional)</label>
+                                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                                        Descripcion (opcional)
+                                    </label>
                                     <input
                                         value={description}
                                         onChange={(event) => setDescription(event.target.value)}
@@ -171,7 +224,9 @@ export function CreateRoutineDialog({ open, onClose }: Props) {
                                 </div>
 
                                 <div>
-                                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Foco de la rutina</label>
+                                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                                        Foco de la rutina
+                                    </label>
                                     <div className="grid grid-cols-3 gap-2">
                                         {FOCUS_TYPES.map((option) => (
                                             <button
@@ -191,7 +246,9 @@ export function CreateRoutineDialog({ open, onClose }: Props) {
                                 </div>
 
                                 <div>
-                                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Color</label>
+                                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                                        Color
+                                    </label>
                                     <div className="flex gap-2">
                                         {COLORS.map((paletteColor) => (
                                             <button
@@ -208,23 +265,35 @@ export function CreateRoutineDialog({ open, onClose }: Props) {
                                     </div>
                                 </div>
 
-                                <div>
-                                    <label className="text-xs font-medium text-muted-foreground mb-2 block">
-                                        Ejercicios ({exercises.length})
+                                <div className="space-y-3">
+                                    <label className="text-xs font-medium text-muted-foreground block">
+                                        Ejercicios ({selectedExercises.length})
                                     </label>
 
-                                    {exercises.length > 0 && (
-                                        <div className="space-y-1.5 mb-3">
-                                            {exercises.map((exercise, index) => (
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        <input
+                                            value={search}
+                                            onChange={(event) => setSearch(event.target.value)}
+                                            placeholder="Buscar en tu maestra de ejercicios..."
+                                            className="w-full rounded-lg border border-border/50 bg-background pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/30"
+                                        />
+                                    </div>
+
+                                    {selectedExercises.length > 0 && (
+                                        <div className="space-y-1.5">
+                                            {selectedExercises.map((exercise, index) => (
                                                 <div
-                                                    key={`${exercise.name}-${index}`}
+                                                    key={`${exercise.id}-${index}`}
                                                     className="flex items-center gap-2 rounded-lg bg-black/5 dark:bg-white/5 px-3 py-2"
                                                 >
-                                                    <span className="text-xs text-muted-foreground w-5">{index + 1}.</span>
+                                                    <span className="text-xs text-muted-foreground w-5">
+                                                        {index + 1}.
+                                                    </span>
                                                     <div className="flex-1 min-w-0">
                                                         <p className="text-sm truncate">{exercise.name}</p>
                                                         <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                                                            {exercise.muscleGroup} · {exercise.category}
+                                                            {exercise.muscleGroup}
                                                         </p>
                                                     </div>
                                                     <button
@@ -238,49 +307,62 @@ export function CreateRoutineDialog({ open, onClose }: Props) {
                                         </div>
                                     )}
 
-                                    <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-2">
-                                        <input
-                                            value={newExName}
-                                            onChange={(event) => setNewExName(event.target.value)}
-                                            placeholder="Ej: Press banca, Sentadilla..."
-                                            onKeyDown={(event) => event.key === "Enter" && addExercise()}
-                                            className="rounded-lg border border-border/50 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/30"
-                                        />
-                                        <select
-                                            value={newMuscleGroup}
-                                            onChange={(event) => setNewMuscleGroup(event.target.value)}
-                                            className="rounded-lg border border-border/50 bg-background px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500/30"
-                                        >
-                                            {MUSCLE_GROUPS.map((group) => (
-                                                <option key={group} value={group}>
-                                                    {group}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <select
-                                            value={newCategory}
-                                            onChange={(event) => setNewCategory(event.target.value)}
-                                            className="rounded-lg border border-border/50 bg-background px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500/30"
-                                        >
-                                            {CATEGORIES.map((category) => (
-                                                <option key={category} value={category}>
-                                                    {category}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <button
-                                            onClick={addExercise}
-                                            disabled={!newExName.trim()}
-                                            className="shrink-0 flex items-center justify-center h-9 w-9 rounded-lg bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 disabled:opacity-40 transition-all"
-                                        >
-                                            <Plus className="h-4 w-4" />
-                                        </button>
+                                    <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                                        {filteredLibrary.map((exercise) => (
+                                            <button
+                                                key={exercise.id}
+                                                type="button"
+                                                onClick={() => addFromLibrary(exercise)}
+                                                className="w-full flex items-center justify-between gap-2 rounded-lg border border-border/40 bg-background/40 px-3 py-2 text-left hover:border-orange-400/30 hover:bg-orange-500/5 transition-colors"
+                                            >
+                                                <div className="min-w-0">
+                                                    <p className="text-sm truncate">{exercise.name}</p>
+                                                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                                                        {exercise.muscleGroup}
+                                                    </p>
+                                                </div>
+                                                <Plus className="h-3.5 w-3.5 text-orange-300 shrink-0" />
+                                            </button>
+                                        ))}
                                     </div>
+
+                                    {!exactMatch && search.trim() && (
+                                        <div className="rounded-lg border border-orange-400/30 bg-orange-500/10 p-3 space-y-2">
+                                            <div className="flex items-center gap-2 text-xs text-orange-200">
+                                                <Sparkles className="h-3.5 w-3.5" />
+                                                Crear &quot;{search.trim()}&quot; y agregarlo a la rutina
+                                            </div>
+                                            <input
+                                                value={newExerciseMuscleGroup}
+                                                onChange={(event) =>
+                                                    setNewExerciseMuscleGroup(event.target.value)
+                                                }
+                                                placeholder="Grupo muscular (ej: pecho)"
+                                                className="w-full rounded-lg border border-orange-400/30 bg-background px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500/30"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={createAndAddExercise}
+                                                disabled={
+                                                    !isOnline ||
+                                                    isCreatingExercise ||
+                                                    !newExerciseMuscleGroup.trim()
+                                                }
+                                                className="w-full rounded-lg bg-orange-500/20 text-orange-200 py-2 text-xs font-medium hover:bg-orange-500/30 disabled:opacity-40 transition-colors"
+                                            >
+                                                {isCreatingExercise
+                                                    ? "Creando..."
+                                                    : isOnline
+                                                      ? "Crear y agregar"
+                                                      : "Disponible solo online"}
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <button
                                     onClick={handleSubmit}
-                                    disabled={!name.trim() || exercises.length === 0 || isPending}
+                                    disabled={!name.trim() || selectedExercises.length === 0 || isPending}
                                     className="w-full rounded-lg bg-gradient-to-r from-orange-500 to-red-500 py-2.5 text-sm font-medium text-white transition-all hover:from-orange-600 hover:to-red-600 disabled:opacity-40"
                                 >
                                     {isPending ? "Creando..." : "Crear Rutina"}
@@ -293,4 +375,3 @@ export function CreateRoutineDialog({ open, onClose }: Props) {
         </AnimatePresence>
     );
 }
-

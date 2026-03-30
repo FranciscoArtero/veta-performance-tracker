@@ -16,14 +16,13 @@ type Props = {
         focusType: "STRENGTH" | "HYPERTROPHY" | "ENDURANCE";
         exercises: {
             id: string;
-            name: string;
-            category: string;
             globalExercise: {
                 id: string;
                 name: string;
-                category: string;
                 muscleGroup: string;
-            } | null;
+                currentWeightGoal: number | null;
+                goalDate: Date | null;
+            };
         }[];
         _count: { logs: number };
     };
@@ -64,7 +63,9 @@ export function RoutineCard({ routine, onStart }: Props) {
                     <div className="space-y-1">
                         <h3 className="font-semibold text-base leading-tight">{routine.name}</h3>
                         {routine.description && (
-                            <p className="text-xs text-muted-foreground line-clamp-1">{routine.description}</p>
+                            <p className="text-xs text-muted-foreground line-clamp-1">
+                                {routine.description}
+                            </p>
                         )}
                     </div>
                     <button
@@ -83,9 +84,7 @@ export function RoutineCard({ routine, onStart }: Props) {
 
                 {routine.exercises.length > 0 && (
                     <p className="text-xs text-muted-foreground line-clamp-2">
-                        {routine.exercises
-                            .map((exercise) => exercise.globalExercise?.name ?? exercise.name)
-                            .join(" · ")}
+                        {routine.exercises.map((exercise) => exercise.globalExercise.name).join(" · ")}
                     </p>
                 )}
 
@@ -109,4 +108,3 @@ export function RoutineCard({ routine, onStart }: Props) {
         </div>
     );
 }
-

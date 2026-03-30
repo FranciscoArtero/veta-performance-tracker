@@ -10,13 +10,14 @@ import {
     YAxis,
     Tooltip,
 } from "recharts";
-import { ArrowLeft, Trophy, Dumbbell, History } from "lucide-react";
+import { ArrowLeft, Trophy, Dumbbell, History, Target } from "lucide-react";
 
 type Exercise = {
     id: string;
     name: string;
-    category: string;
     muscleGroup: string;
+    currentWeightGoal: number | null;
+    goalDate: Date | null;
 };
 
 type TimelinePoint = {
@@ -88,12 +89,12 @@ export function ExerciseHistoryClient({ exercise, timeline, history, stats }: Pr
                 <div>
                     <h1 className="text-xl md:text-2xl font-bold">{exercise.name}</h1>
                     <p className="text-xs uppercase tracking-wider text-muted-foreground">
-                        {exercise.muscleGroup} · {exercise.category}
+                        {exercise.muscleGroup}
                     </p>
                 </div>
             </header>
 
-            <section className="grid gap-3 sm:grid-cols-3">
+            <section className="grid gap-3 sm:grid-cols-4">
                 <div className="rounded-xl border border-border/50 bg-card/50 p-4">
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Top E1RM</p>
                     <p className="mt-1 text-xl text-cyan-200 font-[family-name:var(--font-geist-mono)]">
@@ -107,15 +108,38 @@ export function ExerciseHistoryClient({ exercise, timeline, history, stats }: Pr
                     </p>
                 </div>
                 <div className="rounded-xl border border-border/50 bg-card/50 p-4">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Objetivo</p>
+                    <p className="mt-1 text-xl font-[family-name:var(--font-geist-mono)]">
+                        {exercise.currentWeightGoal ? `${exercise.currentWeightGoal.toFixed(1)} kg` : "--"}
+                    </p>
+                </div>
+                <div className="rounded-xl border border-border/50 bg-card/50 p-4">
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Sesiones</p>
-                    <p className="mt-1 text-xl font-[family-name:var(--font-geist-mono)]">{stats.totalSessions}</p>
+                    <p className="mt-1 text-xl font-[family-name:var(--font-geist-mono)]">
+                        {stats.totalSessions}
+                    </p>
                 </div>
             </section>
 
             <section className="rounded-xl border border-border/50 bg-card/40 p-4 md:p-5">
-                <div className="flex items-center gap-2 mb-4">
-                    <Trophy className="h-4 w-4 text-cyan-300" />
-                    <h2 className="text-sm font-semibold">Evolucion de fuerza (Peso Efectivo / E1RM)</h2>
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+                    <div className="flex items-center gap-2">
+                        <Trophy className="h-4 w-4 text-cyan-300" />
+                        <h2 className="text-sm font-semibold">
+                            Evolucion de fuerza (Peso Efectivo / E1RM)
+                        </h2>
+                    </div>
+                    {exercise.goalDate && (
+                        <div className="flex items-center gap-1.5 text-[11px] text-orange-200">
+                            <Target className="h-3.5 w-3.5" />
+                            Meta:{" "}
+                            {new Date(exercise.goalDate).toLocaleDateString("es-AR", {
+                                day: "2-digit",
+                                month: "2-digit",
+                                year: "numeric",
+                            })}
+                        </div>
+                    )}
                 </div>
 
                 {chartData.length === 0 ? (
@@ -231,4 +255,3 @@ export function ExerciseHistoryClient({ exercise, timeline, history, stats }: Pr
         </div>
     );
 }
-

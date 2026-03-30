@@ -7,18 +7,18 @@ import { ArrowLeft, Check, Plus, Minus, Dumbbell } from "lucide-react";
 import { logWorkout } from "@/app/actions/gym";
 import { useNetworkStatus } from "@/components/providers/NetworkStatusProvider";
 import { addPendingOp } from "@/lib/offline-db";
+import { useMobileKeyboardAssist } from "@/hooks/useMobileKeyboardAssist";
 
 type Exercise = {
     id: string;
-    name: string;
-    category: string;
     order: number;
     globalExercise: {
         id: string;
         name: string;
-        category: string;
         muscleGroup: string;
-    } | null;
+        currentWeightGoal: number | null;
+        goalDate: Date | null;
+    };
 };
 
 type Routine = {
@@ -31,8 +31,8 @@ type Routine = {
 type SetEntry = {
     exerciseId: string;
     setNumber: number;
-    reps: number;
-    weight: number;
+    reps: number | "";
+    weight: number | "";
 };
 
 type Props = {
@@ -40,11 +40,19 @@ type Props = {
     onFinish: () => void;
 };
 
+function toNumberOrEmpty(value: string): number | "" {
+    if (value.trim() === "") return "";
+    const parsed = Number(value);
+    return Number.isNaN(parsed) ? "" : parsed;
+}
+
 export function WorkoutSession({ routine, onFinish }: Props) {
     const [sets, setSets] = useState<Record<string, SetEntry[]>>(() => {
         const initial: Record<string, SetEntry[]> = {};
         for (const exercise of routine.exercises) {
-            initial[exercise.id] = [{ exerciseId: exercise.id, setNumber: 1, reps: 10, weight: 0 }];
+            initial[exercise.id] = [
+                { exerciseId: exercise.id, setNumber: 1, reps: "", weight: "" },
+            ];
         }
         return initial;
     });
@@ -53,39 +61,47 @@ export function WorkoutSession({ routine, onFinish }: Props) {
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
     const { isOnline, refreshPending } = useNetworkStatus();
+    const { dismissKeyboard } = useMobileKeyboardAssist();
 
     function addSet(exerciseId: string) {
-        setSets((prev) => ({
-            ...prev,
+        setSets((previous) => ({
+            ...previous,
             [exerciseId]: [
-                ...(prev[exerciseId] || []),
+                ...(previous[exerciseId] || []),
                 {
                     exerciseId,
-                    setNumber: (prev[exerciseId]?.length || 0) + 1,
-                    reps: prev[exerciseId]?.[prev[exerciseId].length - 1]?.reps || 10,
-                    weight: prev[exerciseId]?.[prev[exerciseId].length - 1]?.weight || 0,
+                    setNumber: (previous[exerciseId]?.length || 0) + 1,
+                    reps: previous[exerciseId]?.[previous[exerciseId].length - 1]?.reps ?? "",
+                    weight: previous[exerciseId]?.[previous[exerciseId].length - 1]?.weight ?? "",
                 },
             ],
         }));
     }
 
     function removeSet(exerciseId: string) {
-        setSets((prev) => ({
-            ...prev,
-            [exerciseId]: (prev[exerciseId] || []).slice(0, -1),
+        setSets((previous) => ({
+            ...previous,
+            [exerciseId]: (previous[exerciseId] || []).slice(0, -1),
         }));
     }
 
-    function updateSet(exerciseId: string, setIndex: number, field: "reps" | "weight", value: number) {
-        setSets((prev) => ({
-            ...prev,
-            [exerciseId]: (prev[exerciseId] || []).map((set, index) =>
+    function updateSet(
+        exerciseId: string,
+        setIndex: number,
+        field: "reps" | "weight",
+        value: number | ""
+    ) {
+        setSets((previous) => ({
+            ...previous,
+            [exerciseId]: (previous[exerciseId] || []).map((set, index) =>
                 index === setIndex ? { ...set, [field]: value } : set
             ),
         }));
     }
 
     function handleFinish() {
+        dismissKeyboard();
+
         const allSets = Object.values(sets).flat();
         if (allSets.length === 0) return;
 
@@ -111,8 +127,8 @@ export function WorkoutSession({ routine, onFinish }: Props) {
                     sets: allSets.map((set) => ({
                         exerciseId: set.exerciseId,
                         setNumber: set.setNumber,
-                        reps: set.reps || undefined,
-                        weight: set.weight || undefined,
+                        reps: typeof set.reps === "number" ? set.reps : undefined,
+                        weight: typeof set.weight === "number" ? set.weight : undefined,
                     })),
                 });
             }
@@ -124,17 +140,25 @@ export function WorkoutSession({ routine, onFinish }: Props) {
     const totalSets = Object.values(sets).flat().length;
     const totalVolume = Object.values(sets)
         .flat()
-        .reduce((sum, set) => sum + set.reps * set.weight, 0);
+        .reduce((sum, set) => {
+            const reps = typeof set.reps === "number" ? set.reps : 0;
+            const weight = typeof set.weight === "number" ? set.weight : 0;
+            return sum + reps * weight;
+        }, 0);
 
     return (
         <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             className="space-y-6"
+            data-keyboard-scroll-container="true"
         >
             <div className="flex items-center gap-3">
                 <button
-                    onClick={onFinish}
+                    onClick={() => {
+                        dismissKeyboard();
+                        onFinish();
+                    }}
                     className="flex h-9 w-9 items-center justify-center rounded-lg bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
                 >
                     <ArrowLeft className="h-4 w-4" />
@@ -160,9 +184,9 @@ export function WorkoutSession({ routine, onFinish }: Props) {
                             <div className="flex items-center gap-2">
                                 <Dumbbell className="h-3.5 w-3.5 text-orange-400" />
                                 <div>
-                                    <span className="font-medium text-sm">{exercise.globalExercise?.name ?? exercise.name}</span>
+                                    <span className="font-medium text-sm">{exercise.globalExercise.name}</span>
                                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                                        {exercise.globalExercise?.muscleGroup ?? exercise.category}
+                                        {exercise.globalExercise.muscleGroup}
                                     </p>
                                 </div>
                             </div>
@@ -197,14 +221,30 @@ export function WorkoutSession({ routine, onFinish }: Props) {
                                 <input
                                     type="number"
                                     value={set.reps}
-                                    onChange={(event) => updateSet(exercise.id, index, "reps", Number(event.target.value))}
+                                    placeholder=""
+                                    onChange={(event) =>
+                                        updateSet(
+                                            exercise.id,
+                                            index,
+                                            "reps",
+                                            toNumberOrEmpty(event.target.value)
+                                        )
+                                    }
                                     className="rounded-md border border-border/50 bg-background px-2 py-1.5 text-sm text-center font-[family-name:var(--font-geist-mono)] focus:outline-none focus:ring-1 focus:ring-orange-500/30"
                                     min={0}
                                 />
                                 <input
                                     type="number"
                                     value={set.weight}
-                                    onChange={(event) => updateSet(exercise.id, index, "weight", Number(event.target.value))}
+                                    placeholder=""
+                                    onChange={(event) =>
+                                        updateSet(
+                                            exercise.id,
+                                            index,
+                                            "weight",
+                                            toNumberOrEmpty(event.target.value)
+                                        )
+                                    }
                                     className="rounded-md border border-border/50 bg-background px-2 py-1.5 text-sm text-center font-[family-name:var(--font-geist-mono)] focus:outline-none focus:ring-1 focus:ring-orange-500/30"
                                     min={0}
                                     step={0.5}
@@ -230,7 +270,9 @@ export function WorkoutSession({ routine, onFinish }: Props) {
                     />
                 </div>
                 <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Notas (opcional)</label>
+                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                        Notas (opcional)
+                    </label>
                     <textarea
                         value={notes}
                         onChange={(event) => setNotes(event.target.value)}
@@ -252,4 +294,3 @@ export function WorkoutSession({ routine, onFinish }: Props) {
         </motion.div>
     );
 }
-
