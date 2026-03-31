@@ -60,6 +60,8 @@ export function GymExercisesCatalogClient({ exercises }: Props) {
     const [muscleGroup, setMuscleGroup] = useState("");
     const [currentWeightGoal, setCurrentWeightGoal] = useState("");
     const [goalDateISO, setGoalDateISO] = useState("");
+    const [listSearch, setListSearch] = useState("");
+    const [listMuscleGroupFilter, setListMuscleGroupFilter] = useState("all");
 
     const initialDrafts = useMemo<Record<string, GoalDraft>>(
         () =>
@@ -79,6 +81,30 @@ export function GymExercisesCatalogClient({ exercises }: Props) {
     );
 
     const [drafts, setDrafts] = useState<Record<string, GoalDraft>>(initialDrafts);
+
+    const knownMuscleGroups = useMemo(
+        () => Array.from(new Set(exercises.map((exercise) => exercise.muscleGroup))).sort(),
+        [exercises]
+    );
+
+    const visibleExercises = useMemo(() => {
+        const search = listSearch.trim().toLowerCase();
+        return exercises.filter((exercise) => {
+            if (
+                listMuscleGroupFilter !== "all" &&
+                exercise.muscleGroup !== listMuscleGroupFilter
+            ) {
+                return false;
+            }
+
+            if (!search) return true;
+
+            return (
+                exercise.name.toLowerCase().includes(search) ||
+                exercise.muscleGroup.toLowerCase().includes(search)
+            );
+        });
+    }, [exercises, listMuscleGroupFilter, listSearch]);
 
     useEffect(() => {
         setDrafts(initialDrafts);
@@ -101,18 +127,26 @@ export function GymExercisesCatalogClient({ exercises }: Props) {
         dismissKeyboard();
 
         startAddTransition(async () => {
-            await createGlobalExercise({
-                name: cleanName,
-                muscleGroup: cleanMuscleGroup,
-                currentWeightGoal: currentWeightGoal ? Number(currentWeightGoal) : null,
-                goalDateISO: goalDateISO || null,
-            });
+            try {
+                await createGlobalExercise({
+                    name: cleanName,
+                    muscleGroup: cleanMuscleGroup,
+                    currentWeightGoal: currentWeightGoal ? Number(currentWeightGoal) : null,
+                    goalDateISO: goalDateISO || null,
+                });
 
-            setName("");
-            setMuscleGroup("");
-            setCurrentWeightGoal("");
-            setGoalDateISO("");
-            router.refresh();
+                setName("");
+                setMuscleGroup("");
+                setCurrentWeightGoal("");
+                setGoalDateISO("");
+                router.refresh();
+            } catch (error) {
+                const message =
+                    error instanceof Error
+                        ? error.message
+                        : "No se pudo crear el ejercicio. Intenta nuevamente.";
+                window.alert(message);
+            }
         });
     }
 
@@ -127,6 +161,12 @@ export function GymExercisesCatalogClient({ exercises }: Props) {
                 goalDateISO: draft?.goalDateISO || null,
             });
             router.refresh();
+        } catch (error) {
+            const message =
+                error instanceof Error
+                    ? error.message
+                    : "No se pudo guardar el objetivo. Intenta nuevamente.";
+            window.alert(message);
         } finally {
             setSavingExerciseId(null);
         }
@@ -222,12 +262,39 @@ export function GymExercisesCatalogClient({ exercises }: Props) {
             </section>
 
             <section className="space-y-2">
+                <div className="rounded-xl border border-border/50 bg-card/40 p-3 md:p-4">
+                    <div className="grid gap-2 md:grid-cols-[1fr_220px]">
+                        <input
+                            value={listSearch}
+                            onChange={(event) => setListSearch(event.target.value)}
+                            placeholder="Buscar ejercicio..."
+                            className="rounded-lg border border-border/50 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+                        />
+                        <select
+                            value={listMuscleGroupFilter}
+                            onChange={(event) => setListMuscleGroupFilter(event.target.value)}
+                            className="rounded-lg border border-border/50 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+                        >
+                            <option value="all">Todos los grupos</option>
+                            {knownMuscleGroups.map((group) => (
+                                <option key={group} value={group}>
+                                    {group}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+
                 {exercises.length === 0 ? (
                     <div className="rounded-xl border border-border/50 bg-card/40 p-6 text-sm text-muted-foreground text-center">
                         Todavia no tienes ejercicios en tu maestra.
                     </div>
+                ) : visibleExercises.length === 0 ? (
+                    <div className="rounded-xl border border-border/50 bg-card/40 p-6 text-sm text-muted-foreground text-center">
+                        No hay ejercicios para ese filtro.
+                    </div>
                 ) : (
-                    exercises.map((exercise) => {
+                    visibleExercises.map((exercise) => {
                         const draft = drafts[exercise.id] ?? { weight: "", goalDateISO: "" };
                         const isSaving = savingExerciseId === exercise.id;
 

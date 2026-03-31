@@ -1622,52 +1622,94 @@ export async function createRoutine(
     if (uniqueExerciseIds.length === 0) throw new Error("Agrega al menos un ejercicio");
 
     if (!(await hasGlobalExercisesTable())) {
-        const created = await prisma.workoutRoutine.create({
-            data: {
-                name: routineName,
-                description,
-                color,
-                focusType,
-                userId,
-                exercises: {
-                    create: uniqueExerciseIds.map((globalExerciseId, order) => ({
-                        globalExerciseId,
-                        order,
-                    })),
-                },
-            },
-            include: {
-                exercises: {
-                    orderBy: { order: "asc" },
-                    select: {
-                        id: true,
-                        order: true,
-                        globalExerciseId: true,
-                    },
-                },
-            },
-        });
+        const routineId = `legacy_routine_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        const now = new Date();
 
-        for (const exercise of created.exercises) {
-            const legacy = fromLegacyExerciseId(exercise.globalExerciseId);
-            if (!legacy) continue;
-
+        try {
+            await prisma.$executeRaw`
+                INSERT INTO "workout_routines"
+                    ("id", "name", "description", "color", "focusType", "userId", "createdAt", "updatedAt")
+                VALUES
+                    (${routineId}, ${routineName}, ${description}, ${color}, ${focusType}, ${userId}, ${now}, ${now})
+            `;
+        } catch (errorWithFocus) {
+            if (!isLegacySchemaError(errorWithFocus)) throw errorWithFocus;
             try {
                 await prisma.$executeRaw`
-                    UPDATE "exercises"
-                    SET
-                        "name" = ${normalizeExerciseName(legacy.name)},
-                        "category" = ${normalizeMuscleGroup(legacy.muscleGroup)}
-                    WHERE id = ${exercise.id}
+                    INSERT INTO "workout_routines"
+                        ("id", "name", "description", "color", "userId", "createdAt", "updatedAt")
+                    VALUES
+                        (${routineId}, ${routineName}, ${description}, ${color}, ${userId}, ${now}, ${now})
                 `;
-            } catch {
-                // Legacy columns might not exist. Keep the routine creation anyway.
+            } catch (errorNoFocus) {
+                if (!isLegacySchemaError(errorNoFocus)) throw errorNoFocus;
+                await prisma.$executeRaw`
+                    INSERT INTO "workout_routines"
+                        ("id", "name", "description", "color", "userId", "createdAt")
+                    VALUES
+                        (${routineId}, ${routineName}, ${description}, ${color}, ${userId}, ${now})
+                `;
             }
         }
 
+        const createdExercises: {
+            id: string;
+            order: number;
+            globalExerciseId: string;
+        }[] = [];
+
+        for (let order = 0; order < uniqueExerciseIds.length; order += 1) {
+            const requestedId = uniqueExerciseIds[order];
+            const exerciseId = `legacy_ex_${Date.now()}_${order}_${Math.random().toString(36).slice(2, 7)}`;
+            const parsed = fromLegacyExerciseId(requestedId);
+            const name = normalizeExerciseName(parsed?.name || `Ejercicio ${order + 1}`);
+            const muscleGroup = normalizeMuscleGroup(parsed?.muscleGroup || DEFAULT_MUSCLE_GROUP);
+            const globalExerciseId = toLegacyExerciseId(name, muscleGroup);
+
+            try {
+                await prisma.$executeRaw`
+                    INSERT INTO "exercises"
+                        ("id", "order", "routineId", "globalExerciseId", "name", "category", "createdAt")
+                    VALUES
+                        (${exerciseId}, ${order}, ${routineId}, ${globalExerciseId}, ${name}, ${muscleGroup}, ${now})
+                `;
+            } catch (errorWithAllColumns) {
+                if (!isLegacySchemaError(errorWithAllColumns)) throw errorWithAllColumns;
+                try {
+                    await prisma.$executeRaw`
+                        INSERT INTO "exercises"
+                            ("id", "order", "routineId", "globalExerciseId", "createdAt")
+                        VALUES
+                            (${exerciseId}, ${order}, ${routineId}, ${globalExerciseId}, ${now})
+                    `;
+                } catch (errorOnlyGlobal) {
+                    if (!isLegacySchemaError(errorOnlyGlobal)) throw errorOnlyGlobal;
+                    await prisma.$executeRaw`
+                        INSERT INTO "exercises"
+                            ("id", "order", "routineId", "name", "category", "createdAt")
+                        VALUES
+                            (${exerciseId}, ${order}, ${routineId}, ${name}, ${muscleGroup}, ${now})
+                    `;
+                }
+            }
+
+            createdExercises.push({
+                id: exerciseId,
+                order,
+                globalExerciseId,
+            });
+        }
+
         return {
-            ...created,
-            exercises: created.exercises.map((exercise) => {
+            id: routineId,
+            name: routineName,
+            description,
+            color,
+            focusType,
+            userId,
+            createdAt: now,
+            updatedAt: now,
+            exercises: createdExercises.map((exercise) => {
                 const fallback = fromLegacyExerciseId(exercise.globalExerciseId);
                 const name = normalizeExerciseName(
                     fallback?.name || `Ejercicio ${exercise.id.slice(-6)}`
@@ -1685,6 +1727,7 @@ export async function createRoutine(
                     },
                 };
             }),
+            _count: { logs: 0 },
         };
     }
 

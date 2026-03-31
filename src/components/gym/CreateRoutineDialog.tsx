@@ -118,29 +118,37 @@ export function CreateRoutineDialog({ open, onClose, globalExercises }: Props) {
         dismissKeyboard();
 
         startCreateExerciseTransition(async () => {
-            const created = await createGlobalExercise({
-                name: cleanName,
-                muscleGroup: cleanMuscleGroup,
-            });
+            try {
+                const created = await createGlobalExercise({
+                    name: cleanName,
+                    muscleGroup: cleanMuscleGroup,
+                });
 
-            const option: GlobalExerciseOption = {
-                id: created.id,
-                name: created.name,
-                muscleGroup: created.muscleGroup,
-            };
+                const option: GlobalExerciseOption = {
+                    id: created.id,
+                    name: created.name,
+                    muscleGroup: created.muscleGroup,
+                };
 
-            setLibrary((previous) => {
-                const deduped = previous.filter((exercise) => exercise.id !== option.id);
-                return [...deduped, option].sort((a, b) => a.name.localeCompare(b.name));
-            });
-            setSelectedExercises((previous) => {
-                if (previous.some((exercise) => exercise.id === option.id)) return previous;
-                return [...previous, option];
-            });
+                setLibrary((previous) => {
+                    const deduped = previous.filter((exercise) => exercise.id !== option.id);
+                    return [...deduped, option].sort((a, b) => a.name.localeCompare(b.name));
+                });
+                setSelectedExercises((previous) => {
+                    if (previous.some((exercise) => exercise.id === option.id)) return previous;
+                    return [...previous, option];
+                });
 
-            setSearch("");
-            setNewExerciseMuscleGroup("");
-            router.refresh();
+                setSearch("");
+                setNewExerciseMuscleGroup("");
+                router.refresh();
+            } catch (error) {
+                const message =
+                    error instanceof Error
+                        ? error.message
+                        : "No se pudo crear el ejercicio. Intenta nuevamente.";
+                window.alert(message);
+            }
         });
     }
 
@@ -151,21 +159,35 @@ export function CreateRoutineDialog({ open, onClose, globalExercises }: Props) {
         const exerciseIds = selectedExercises.map((exercise) => exercise.id);
 
         startTransition(async () => {
-            if (!isOnline) {
-                await addPendingOp("CREATE_ROUTINE", {
-                    name: name.trim(),
-                    description: description || "",
-                    color,
-                    focusType,
-                    exercises: JSON.stringify(exerciseIds),
-                });
-                await refreshPending();
-            } else {
-                await createRoutine(name.trim(), description || null, color, focusType, exerciseIds);
-            }
+            try {
+                if (!isOnline) {
+                    await addPendingOp("CREATE_ROUTINE", {
+                        name: name.trim(),
+                        description: description || "",
+                        color,
+                        focusType,
+                        exercises: JSON.stringify(exerciseIds),
+                    });
+                    await refreshPending();
+                } else {
+                    await createRoutine(
+                        name.trim(),
+                        description || null,
+                        color,
+                        focusType,
+                        exerciseIds
+                    );
+                }
 
-            router.refresh();
-            resetAndClose();
+                router.refresh();
+                resetAndClose();
+            } catch (error) {
+                const message =
+                    error instanceof Error
+                        ? error.message
+                        : "No se pudo crear la rutina. Intenta nuevamente.";
+                window.alert(message);
+            }
         });
     }
 
