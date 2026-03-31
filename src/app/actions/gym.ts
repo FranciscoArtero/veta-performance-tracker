@@ -38,7 +38,39 @@ function isLegacySchemaError(error: unknown) {
     );
 }
 
-async function hasGlobalExercisesTable() {
+async function ensureGlobalExercisesTableExists() {
+    try {
+        await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS "global_exercises" (
+                "id" TEXT PRIMARY KEY,
+                "userId" TEXT NOT NULL,
+                "name" TEXT NOT NULL,
+                "muscleGroup" TEXT NOT NULL DEFAULT 'general',
+                "currentWeightGoal" DOUBLE PRECISION,
+                "goalDate" DATE,
+                "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        await prisma.$executeRawUnsafe(`
+            CREATE INDEX IF NOT EXISTS "global_exercises_userId_idx"
+            ON "global_exercises" ("userId")
+        `);
+
+        await prisma.$executeRawUnsafe(`
+            CREATE UNIQUE INDEX IF NOT EXISTS "global_exercises_userId_name_key"
+            ON "global_exercises" ("userId", "name")
+        `);
+
+        globalExercisesTableExistsPromise = Promise.resolve(true);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+async function hasGlobalExercisesTable(createIfMissing = false) {
     if (!globalExercisesTableExistsPromise) {
         globalExercisesTableExistsPromise = prisma
             .$queryRaw<{ exists: boolean }[]>`
@@ -52,7 +84,10 @@ async function hasGlobalExercisesTable() {
             .then((rows) => Boolean(rows?.[0]?.exists))
             .catch(() => false);
     }
-    return globalExercisesTableExistsPromise;
+    const exists = await globalExercisesTableExistsPromise;
+    if (exists) return true;
+    if (!createIfMissing) return false;
+    return ensureGlobalExercisesTableExists();
 }
 
 function toLegacyExerciseId(name: string, muscleGroup: string) {
@@ -400,7 +435,7 @@ export async function createGlobalExercise(input: {
         Object.prototype.hasOwnProperty.call(input, "goalDateISO");
 
     if (!normalizedName) throw new Error("El ejercicio necesita nombre");
-    if (!(await hasGlobalExercisesTable())) {
+    if (!(await hasGlobalExercisesTable(true))) {
         return {
             id: toLegacyExerciseId(normalizedName, normalizedMuscleGroup),
             userId,
