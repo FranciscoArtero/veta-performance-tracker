@@ -26,15 +26,28 @@ const DEFAULT_FOCUS_TYPE: FocusType = "HYPERTROPHY";
 const DEFAULT_MUSCLE_GROUP = "general";
 let integrityRepairPromise: Promise<void> | null = null;
 let globalExercisesTableExistsPromise: Promise<boolean> | null = null;
+let exerciseGlobalExerciseIdColumnExistsPromise: Promise<boolean> | null = null;
 
 function isLegacySchemaError(error: unknown) {
     if (typeof error !== "object" || error === null) return false;
-    const prismaError = error as { code?: string; message?: string };
+    const prismaError = error as {
+        code?: string;
+        message?: string;
+        meta?: { code?: string; message?: string };
+    };
     if (prismaError.code === "P2021" || prismaError.code === "P2022") return true;
-    const message = (prismaError.message || "").toLowerCase();
+    if (prismaError.meta?.code === "42703") return true;
+    const message = (
+        prismaError.message ||
+        prismaError.meta?.message ||
+        ""
+    ).toLowerCase();
     return (
-        message.includes("global_exercises") &&
-        (message.includes("does not exist") || message.includes("not available"))
+        (message.includes("global_exercises") ||
+            message.includes("globalexerciseid")) &&
+        (message.includes("does not exist") ||
+            message.includes("not available") ||
+            message.includes("column"))
     );
 }
 
@@ -88,6 +101,24 @@ async function hasGlobalExercisesTable(createIfMissing = false) {
     if (exists) return true;
     if (!createIfMissing) return false;
     return ensureGlobalExercisesTableExists();
+}
+
+async function hasExerciseGlobalExerciseIdColumn() {
+    if (!exerciseGlobalExerciseIdColumnExistsPromise) {
+        exerciseGlobalExerciseIdColumnExistsPromise = prisma
+            .$queryRaw<{ exists: boolean }[]>`
+                SELECT EXISTS (
+                    SELECT 1
+                    FROM information_schema.columns
+                    WHERE table_schema = 'public'
+                      AND table_name = 'exercises'
+                      AND column_name = 'globalExerciseId'
+                ) AS "exists"
+            `
+            .then((rows) => Boolean(rows?.[0]?.exists))
+            .catch(() => false);
+    }
+    return exerciseGlobalExerciseIdColumnExistsPromise;
 }
 
 function toLegacyExerciseId(name: string, muscleGroup: string) {
@@ -217,6 +248,7 @@ async function upsertLegacyGlobalExercise(params: {
 
 async function repairLegacyExerciseReferences() {
     if (!(await hasGlobalExercisesTable())) return;
+    if (!(await hasExerciseGlobalExerciseIdColumn())) return;
 
     try {
         await prisma.$executeRaw`
@@ -295,6 +327,7 @@ async function repairLegacyExerciseReferences() {
 
 async function ensureLegacyExerciseIntegrity() {
     if (!(await hasGlobalExercisesTable())) return;
+    if (!(await hasExerciseGlobalExerciseIdColumn())) return;
 
     if (!integrityRepairPromise) {
         integrityRepairPromise = repairLegacyExerciseReferences().finally(() => {
@@ -384,24 +417,50 @@ export async function getGlobalExercises() {
     } catch (error) {
         if (!isLegacySchemaError(error)) throw error;
 
-        const rows = await prisma.$queryRaw<
-            {
-                id: string;
-                name: string;
-                muscleGroup: string;
-                exerciseCount: number;
-            }[]
-        >`
-            SELECT
-                ge.id,
-                ge."name",
-                ge."muscleGroup",
-                COUNT(e.id)::int AS "exerciseCount"
-            FROM "global_exercises" ge
-            LEFT JOIN "exercises" e ON e."globalExerciseId" = ge.id
-            GROUP BY ge.id, ge."name", ge."muscleGroup"
-            ORDER BY ge."name" ASC
-        `;
+        let rows: {
+            id: string;
+            name: string;
+            muscleGroup: string;
+            exerciseCount: number;
+        }[] = [];
+
+        if (await hasExerciseGlobalExerciseIdColumn()) {
+            rows = await prisma.$queryRaw<
+                {
+                    id: string;
+                    name: string;
+                    muscleGroup: string;
+                    exerciseCount: number;
+                }[]
+            >`
+                SELECT
+                    ge.id,
+                    ge."name",
+                    ge."muscleGroup",
+                    COUNT(e.id)::int AS "exerciseCount"
+                FROM "global_exercises" ge
+                LEFT JOIN "exercises" e ON e."globalExerciseId" = ge.id
+                GROUP BY ge.id, ge."name", ge."muscleGroup"
+                ORDER BY ge."name" ASC
+            `;
+        } else {
+            rows = await prisma.$queryRaw<
+                {
+                    id: string;
+                    name: string;
+                    muscleGroup: string;
+                    exerciseCount: number;
+                }[]
+            >`
+                SELECT
+                    ge.id,
+                    ge."name",
+                    ge."muscleGroup",
+                    0::int AS "exerciseCount"
+                FROM "global_exercises" ge
+                ORDER BY ge."name" ASC
+            `;
+        }
 
         return rows.map((row) => ({
             id: row.id,
