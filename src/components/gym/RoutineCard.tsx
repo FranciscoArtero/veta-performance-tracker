@@ -42,13 +42,21 @@ export function RoutineCard({ routine, onStart }: Props) {
         if (!confirm("Eliminar esta rutina?")) return;
 
         startTransition(async () => {
-            if (!isOnline) {
-                await addPendingOp("DELETE_ROUTINE", { routineId: routine.id });
-                await refreshPending();
-                return;
+            try {
+                if (!isOnline) {
+                    await addPendingOp("DELETE_ROUTINE", { routineId: routine.id });
+                    await refreshPending();
+                    return;
+                }
+                await deleteRoutine(routine.id);
+                router.refresh();
+            } catch (error) {
+                const message =
+                    error instanceof Error
+                        ? error.message
+                        : "No se pudo eliminar la rutina. Intenta nuevamente.";
+                alert(message);
             }
-            await deleteRoutine(routine.id);
-            router.refresh();
         });
     }
 

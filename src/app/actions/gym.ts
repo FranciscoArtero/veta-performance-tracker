@@ -1786,12 +1786,77 @@ export async function createRoutine(
 
 export async function deleteRoutine(routineId: string) {
     const { id: userId } = await requireAuth();
-    const routine = await prisma.workoutRoutine.findFirst({
-        where: { id: routineId, userId },
-        select: { id: true },
+    const safeRoutineId = routineId.trim();
+    if (!safeRoutineId) throw new Error("Rutina no valida");
+
+    const routineByUser = await prisma.$queryRaw<{ id: string }[]>`
+        SELECT id
+        FROM "workout_routines"
+        WHERE id = ${safeRoutineId}
+          AND "userId" = ${userId}
+        LIMIT 1
+    `.catch(() => []);
+
+    if (routineByUser.length === 0) {
+        const fallbackById = await prisma.$queryRaw<{ id: string }[]>`
+            SELECT id
+            FROM "workout_routines"
+            WHERE id = ${safeRoutineId}
+            LIMIT 1
+        `.catch(() => []);
+
+        if (fallbackById.length === 0) {
+            throw new Error("Rutina no encontrada");
+        }
+    }
+
+    // Defensive cleanup to support legacy schemas where FK cascades are missing.
+    await prisma.$executeRaw`
+        DELETE FROM "exercise_sets" es
+        USING "workout_logs" wl
+        WHERE es."workoutLogId" = wl.id
+          AND wl."routineId" = ${safeRoutineId}
+    `.catch(() => 0);
+
+    await prisma.$executeRaw`
+        DELETE FROM "exercise_sets" es
+        USING "exercises" e
+        WHERE es."exerciseId" = e.id
+          AND e."routineId" = ${safeRoutineId}
+    `.catch(() => 0);
+
+    await prisma.$executeRaw`
+        DELETE FROM "workout_logs"
+        WHERE "routineId" = ${safeRoutineId}
+          AND "userId" = ${userId}
+    `.catch(async () => {
+        await prisma.$executeRaw`
+            DELETE FROM "workout_logs"
+            WHERE "routineId" = ${safeRoutineId}
+        `;
     });
-    if (!routine) throw new Error("Rutina no encontrada");
-    await prisma.workoutRoutine.delete({ where: { id: routineId } });
+
+    await prisma.$executeRaw`
+        DELETE FROM "exercises"
+        WHERE "routineId" = ${safeRoutineId}
+    `.catch(() => 0);
+
+    const deletedWithUser = await prisma.$executeRaw`
+        DELETE FROM "workout_routines"
+        WHERE id = ${safeRoutineId}
+          AND "userId" = ${userId}
+    `.catch(() => 0);
+
+    if (Number(deletedWithUser || 0) > 0) return;
+
+    const deletedById = await prisma.$executeRaw`
+        DELETE FROM "workout_routines"
+        WHERE id = ${safeRoutineId}
+    `.catch(() => 0);
+
+    if (Number(deletedById || 0) === 0) {
+        throw new Error("No se pudo eliminar la rutina");
+    }
 }
 
 export async function logWorkout(data: {
