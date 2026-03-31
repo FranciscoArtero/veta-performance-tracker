@@ -1711,11 +1711,14 @@ export async function createRoutine(
     const uniqueExerciseIds = Array.from(
         new Set(exerciseIds.map((exerciseId) => exerciseId.trim()).filter(Boolean))
     );
+    const hasGlobalExercises = await hasGlobalExercisesTable();
+    const hasExerciseGlobalIdColumn = await hasExerciseGlobalExerciseIdColumn();
+    const useLegacyRoutineMode = !hasGlobalExercises || !hasExerciseGlobalIdColumn;
 
     if (!routineName) throw new Error("La rutina necesita nombre");
     if (uniqueExerciseIds.length === 0) throw new Error("Agrega al menos un ejercicio");
 
-    if (!(await hasGlobalExercisesTable())) {
+    if (useLegacyRoutineMode) {
         const routineId = `legacy_routine_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
         const now = new Date();
 
@@ -1756,26 +1759,70 @@ export async function createRoutine(
             const requestedId = uniqueExerciseIds[order];
             const exerciseId = `legacy_ex_${Date.now()}_${order}_${Math.random().toString(36).slice(2, 7)}`;
             const parsed = fromLegacyExerciseId(requestedId);
-            const name = normalizeExerciseName(parsed?.name || `Ejercicio ${order + 1}`);
-            const muscleGroup = normalizeMuscleGroup(parsed?.muscleGroup || DEFAULT_MUSCLE_GROUP);
-            const globalExerciseId = toLegacyExerciseId(name, muscleGroup);
+
+            let lookupName: string | null = null;
+            let lookupMuscleGroup: string | null = null;
+            if (!parsed && hasGlobalExercises) {
+                try {
+                    const [row] = await prisma.$queryRaw<
+                        { name: string; muscleGroup: string }[]
+                    >`
+                        SELECT "name", "muscleGroup"
+                        FROM "global_exercises"
+                        WHERE id = ${requestedId}
+                        LIMIT 1
+                    `;
+                    lookupName = row?.name || null;
+                    lookupMuscleGroup = row?.muscleGroup || null;
+                } catch {
+                    // Keep fallbacks below.
+                }
+            }
+
+            const name = normalizeExerciseName(
+                parsed?.name || lookupName || `Ejercicio ${order + 1}`
+            );
+            const muscleGroup = normalizeMuscleGroup(
+                parsed?.muscleGroup || lookupMuscleGroup || DEFAULT_MUSCLE_GROUP
+            );
+            const globalExerciseId = parsed
+                ? toLegacyExerciseId(name, muscleGroup)
+                : requestedId;
 
             try {
-                await prisma.$executeRaw`
-                    INSERT INTO "exercises"
-                        ("id", "order", "routineId", "globalExerciseId", "name", "category", "createdAt")
-                    VALUES
-                        (${exerciseId}, ${order}, ${routineId}, ${globalExerciseId}, ${name}, ${muscleGroup}, ${now})
-                `;
+                if (hasExerciseGlobalIdColumn) {
+                    await prisma.$executeRaw`
+                        INSERT INTO "exercises"
+                            ("id", "order", "routineId", "globalExerciseId", "name", "category", "createdAt")
+                        VALUES
+                            (${exerciseId}, ${order}, ${routineId}, ${globalExerciseId}, ${name}, ${muscleGroup}, ${now})
+                    `;
+                } else {
+                    await prisma.$executeRaw`
+                        INSERT INTO "exercises"
+                            ("id", "order", "routineId", "name", "category", "createdAt")
+                        VALUES
+                            (${exerciseId}, ${order}, ${routineId}, ${name}, ${muscleGroup}, ${now})
+                    `;
+                }
             } catch (errorWithAllColumns) {
                 if (!isLegacySchemaError(errorWithAllColumns)) throw errorWithAllColumns;
                 try {
-                    await prisma.$executeRaw`
-                        INSERT INTO "exercises"
-                            ("id", "order", "routineId", "globalExerciseId", "createdAt")
-                        VALUES
-                            (${exerciseId}, ${order}, ${routineId}, ${globalExerciseId}, ${now})
-                    `;
+                    if (hasExerciseGlobalIdColumn) {
+                        await prisma.$executeRaw`
+                            INSERT INTO "exercises"
+                                ("id", "order", "routineId", "globalExerciseId", "createdAt")
+                            VALUES
+                                (${exerciseId}, ${order}, ${routineId}, ${globalExerciseId}, ${now})
+                        `;
+                    } else {
+                        await prisma.$executeRaw`
+                            INSERT INTO "exercises"
+                                ("id", "order", "routineId", "createdAt")
+                            VALUES
+                                (${exerciseId}, ${order}, ${routineId}, ${now})
+                        `;
+                    }
                 } catch (errorOnlyGlobal) {
                     if (!isLegacySchemaError(errorOnlyGlobal)) throw errorOnlyGlobal;
                     await prisma.$executeRaw`
