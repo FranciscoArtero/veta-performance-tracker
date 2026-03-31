@@ -496,6 +496,68 @@ export async function updateGlobalExerciseGoals(input: {
     }
 }
 
+export async function deleteGlobalExercise(globalExerciseId: string) {
+    const { id: userId } = await requireAuth();
+    const safeId = globalExerciseId.trim();
+    if (!safeId) throw new Error("Ejercicio no valido");
+
+    if (!(await hasGlobalExercisesTable())) {
+        const parsed = fromLegacyExerciseId(safeId);
+        if (!parsed) {
+            throw new Error(
+                "No se pudo eliminar en modo legacy. Abre la rutina y quita el ejercicio manualmente."
+            );
+        }
+
+        try {
+            await prisma.$executeRaw`
+                DELETE FROM "exercise_sets" es
+                USING "exercises" e, "workout_routines" wr
+                WHERE es."exerciseId" = e.id
+                  AND e."routineId" = wr.id
+                  AND wr."userId" = ${userId}
+                  AND LOWER(TRIM(COALESCE(e."name", ''))) = LOWER(${parsed.name})
+                  AND LOWER(TRIM(COALESCE(e."category", ''))) = LOWER(${parsed.muscleGroup})
+            `;
+
+            await prisma.$executeRaw`
+                DELETE FROM "exercises" e
+                USING "workout_routines" wr
+                WHERE e."routineId" = wr.id
+                  AND wr."userId" = ${userId}
+                  AND LOWER(TRIM(COALESCE(e."name", ''))) = LOWER(${parsed.name})
+                  AND LOWER(TRIM(COALESCE(e."category", ''))) = LOWER(${parsed.muscleGroup})
+            `;
+            return;
+        } catch {
+            throw new Error(
+                "No se pudo eliminar este ejercicio en la estructura actual. Intenta primero quitarlo de tus rutinas."
+            );
+        }
+    }
+
+    try {
+        const deleted = await prisma.globalExercise.deleteMany({
+            where: {
+                id: safeId,
+                userId,
+            },
+        });
+
+        if (deleted.count === 0) {
+            throw new Error("Ejercicio no encontrado");
+        }
+    } catch (error) {
+        if (!isLegacySchemaError(error)) throw error;
+
+        // Legacy schema with table but no userId column.
+        const deleted = await prisma.globalExercise.deleteMany({
+            where: { id: safeId },
+        });
+        if (deleted.count === 0) throw new Error("Ejercicio no encontrado");
+    }
+}
+
 async function getLegacyRoutines(userId: string) {
     let rows: {
         routineId: string;

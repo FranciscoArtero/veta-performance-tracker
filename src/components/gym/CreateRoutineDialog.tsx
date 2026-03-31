@@ -40,6 +40,21 @@ const FOCUS_TYPES: { value: FocusType; label: string }[] = [
     { value: "ENDURANCE", label: "Resistencia" },
 ];
 
+const MUSCLE_GROUP_OPTIONS = [
+    { value: "pecho", label: "Pecho" },
+    { value: "espalda", label: "Espalda" },
+    { value: "hombros", label: "Hombros" },
+    { value: "biceps", label: "Biceps" },
+    { value: "triceps", label: "Triceps" },
+    { value: "piernas", label: "Piernas" },
+    { value: "gluteos", label: "Gluteos" },
+    { value: "core", label: "Core" },
+    { value: "cardio", label: "Cardio" },
+    { value: "antebrazos", label: "Antebrazos" },
+    { value: "movilidad", label: "Movilidad" },
+    { value: "cuerpo completo", label: "Cuerpo completo" },
+];
+
 export function CreateRoutineDialog({ open, onClose, globalExercises }: Props) {
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
@@ -332,14 +347,20 @@ export function CreateRoutineDialog({ open, onClose, globalExercises }: Props) {
                                                 <Sparkles className="h-3.5 w-3.5" />
                                                 Crear &quot;{search.trim()}&quot; y agregarlo a la rutina
                                             </div>
-                                            <input
+                                            <select
                                                 value={newExerciseMuscleGroup}
                                                 onChange={(event) =>
                                                     setNewExerciseMuscleGroup(event.target.value)
                                                 }
-                                                placeholder="Grupo muscular (ej: pecho)"
                                                 className="w-full rounded-lg border border-orange-400/30 bg-background px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500/30"
-                                            />
+                                            >
+                                                <option value="">Grupo muscular</option>
+                                                {MUSCLE_GROUP_OPTIONS.map((option) => (
+                                                    <option key={option.value} value={option.value}>
+                                                        {option.label}
+                                                    </option>
+                                                ))}
+                                            </select>
                                             <button
                                                 type="button"
                                                 onClick={createAndAddExercise}
