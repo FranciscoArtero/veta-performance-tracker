@@ -24,6 +24,7 @@ type ExerciseSummaryAccumulator = {
 
 const DEFAULT_FOCUS_TYPE: FocusType = "HYPERTROPHY";
 const DEFAULT_MUSCLE_GROUP = "general";
+let integrityRepairPromise: Promise<void> | null = null;
 
 function isMissingColumnError(error: unknown) {
     return (
@@ -78,6 +79,154 @@ function parseGoalDate(goalDateISO?: string | null) {
 function parseGoalWeight(goal: number | null | undefined) {
     if (typeof goal !== "number" || Number.isNaN(goal) || goal <= 0) return null;
     return Number(goal.toFixed(2));
+}
+
+async function upsertLegacyGlobalExercise(params: {
+    name: string;
+    muscleGroup: string;
+    userId?: string | null;
+}) {
+    const fallbackId = `legacy_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+    if (params.userId) {
+        try {
+            await prisma.$executeRaw`
+                INSERT INTO "global_exercises"
+                    ("id", "userId", "name", "muscleGroup", "createdAt", "updatedAt")
+                VALUES
+                    (${fallbackId}, ${params.userId}, ${params.name}, ${params.muscleGroup}, NOW(), NOW())
+                ON CONFLICT ("userId", "name")
+                DO UPDATE SET
+                    "muscleGroup" = EXCLUDED."muscleGroup",
+                    "updatedAt" = NOW()
+            `;
+
+            const [row] = await prisma.$queryRaw<{ id: string }[]>`
+                SELECT id
+                FROM "global_exercises"
+                WHERE "userId" = ${params.userId} AND "name" = ${params.name}
+                LIMIT 1
+            `;
+            if (row?.id) return row.id;
+        } catch {
+            // fall through to legacy schemas
+        }
+    }
+
+    try {
+        await prisma.$executeRaw`
+            INSERT INTO "global_exercises"
+                ("id", "name", "muscleGroup", "category", "createdAt", "updatedAt")
+            VALUES
+                (${fallbackId}, ${params.name}, ${params.muscleGroup}, 'general', NOW(), NOW())
+            ON CONFLICT ("name")
+            DO UPDATE SET
+                "muscleGroup" = EXCLUDED."muscleGroup",
+                "updatedAt" = NOW()
+        `;
+    } catch {
+        await prisma.$executeRaw`
+            INSERT INTO "global_exercises"
+                ("id", "name", "muscleGroup", "createdAt", "updatedAt")
+            VALUES
+                (${fallbackId}, ${params.name}, ${params.muscleGroup}, NOW(), NOW())
+            ON CONFLICT ("name")
+            DO NOTHING
+        `;
+    }
+
+    const [row] = await prisma.$queryRaw<{ id: string }[]>`
+        SELECT id
+        FROM "global_exercises"
+        WHERE "name" = ${params.name}
+        LIMIT 1
+    `;
+    return row?.id ?? fallbackId;
+}
+
+async function repairLegacyExerciseReferences() {
+    try {
+        await prisma.$executeRaw`
+            UPDATE "exercises" e
+            SET "globalExerciseId" = ge.id
+            FROM "global_exercises" ge
+            WHERE e."globalExerciseId" IS NULL
+              AND LOWER(TRIM(COALESCE(e."name", ''))) = LOWER(TRIM(COALESCE(ge."name", '')))
+        `;
+    } catch {
+        // Ignore if old columns are unavailable; we'll handle the remaining nulls below.
+    }
+
+    let missingRows: {
+        id: string;
+        userId: string | null;
+        name: string;
+        category: string;
+    }[] = [];
+
+    try {
+        missingRows = await prisma.$queryRaw<
+            {
+                id: string;
+                userId: string | null;
+                name: string;
+                category: string;
+            }[]
+        >`
+            SELECT
+                e.id,
+                wr."userId",
+                COALESCE(e."name", CONCAT('Ejercicio ', RIGHT(e.id, 6))) AS "name",
+                COALESCE(e."category", ${DEFAULT_MUSCLE_GROUP}) AS "category"
+            FROM "exercises" e
+            LEFT JOIN "workout_routines" wr ON wr.id = e."routineId"
+            WHERE e."globalExerciseId" IS NULL
+        `;
+    } catch {
+        missingRows = await prisma.$queryRaw<
+            {
+                id: string;
+                userId: string | null;
+                name: string;
+                category: string;
+            }[]
+        >`
+            SELECT
+                e.id,
+                wr."userId",
+                CONCAT('Ejercicio ', RIGHT(e.id, 6)) AS "name",
+                ${DEFAULT_MUSCLE_GROUP}::text AS "category"
+            FROM "exercises" e
+            LEFT JOIN "workout_routines" wr ON wr.id = e."routineId"
+            WHERE e."globalExerciseId" IS NULL
+        `;
+    }
+
+    for (const row of missingRows) {
+        const normalizedName = normalizeExerciseName(row.name);
+        const normalizedMuscleGroup = normalizeMuscleGroup(row.category);
+        const globalExerciseId = await upsertLegacyGlobalExercise({
+            name: normalizedName,
+            muscleGroup: normalizedMuscleGroup,
+            userId: row.userId,
+        });
+
+        await prisma.$executeRaw`
+            UPDATE "exercises"
+            SET "globalExerciseId" = ${globalExerciseId}
+            WHERE id = ${row.id}
+              AND "globalExerciseId" IS NULL
+        `;
+    }
+}
+
+async function ensureLegacyExerciseIntegrity() {
+    if (!integrityRepairPromise) {
+        integrityRepairPromise = repairLegacyExerciseReferences().finally(() => {
+            integrityRepairPromise = null;
+        });
+    }
+    await integrityRepairPromise;
 }
 
 export async function getGlobalExercises() {
@@ -233,6 +382,7 @@ export async function updateGlobalExerciseGoals(input: {
 
 export async function getRoutines() {
     const { id: userId } = await requireAuth();
+    await ensureLegacyExerciseIntegrity();
     return prisma.workoutRoutine.findMany({
         where: { userId },
         include: {
@@ -256,6 +406,7 @@ export async function getRoutines() {
 
 export async function getWorkoutLogs(limit = 20) {
     const { id: userId } = await requireAuth();
+    await ensureLegacyExerciseIntegrity();
     return prisma.workoutLog.findMany({
         where: { userId },
         include: {
@@ -288,6 +439,7 @@ export async function getExerciseProgressSummaries(
     filters: ExerciseProgressFilters = {}
 ) {
     const { id: userId } = await requireAuth();
+    await ensureLegacyExerciseIntegrity();
 
     const filterExerciseId = filters.exerciseId?.trim() || null;
     const filterMuscleGroup =
@@ -412,6 +564,7 @@ export async function getExerciseProgressSummaries(
 
 export async function getExerciseHistory(globalExerciseId: string) {
     const { id: userId } = await requireAuth();
+    await ensureLegacyExerciseIntegrity();
     const safeId = globalExerciseId.trim();
     if (!safeId) throw new Error("Ejercicio no valido");
 
@@ -543,13 +696,23 @@ export async function createRoutine(
     if (!routineName) throw new Error("La rutina necesita nombre");
     if (uniqueExerciseIds.length === 0) throw new Error("Agrega al menos un ejercicio");
 
-    const validExercises = await prisma.globalExercise.findMany({
-        where: {
-            userId,
-            id: { in: uniqueExerciseIds },
-        },
-        select: { id: true },
-    });
+    let validExercises: { id: string }[] = [];
+
+    try {
+        validExercises = await prisma.globalExercise.findMany({
+            where: {
+                userId,
+                id: { in: uniqueExerciseIds },
+            },
+            select: { id: true },
+        });
+    } catch (error) {
+        if (!isMissingColumnError(error)) throw error;
+        validExercises = await prisma.globalExercise.findMany({
+            where: { id: { in: uniqueExerciseIds } },
+            select: { id: true },
+        });
+    }
 
     if (validExercises.length !== uniqueExerciseIds.length) {
         throw new Error("Uno o mas ejercicios no pertenecen a tu biblioteca");
@@ -577,8 +740,6 @@ export async function createRoutine(
                             id: true,
                             name: true,
                             muscleGroup: true,
-                            currentWeightGoal: true,
-                            goalDate: true,
                         },
                     },
                 },
